@@ -18,11 +18,18 @@ Website katalog kamar Kos Primadona yang menyediakan informasi dua lokasi kos, f
 
 - Memilih dua lokasi kos melalui tab lokasi
 - Memfilter kamar: Semua, Tersedia, atau Sudah Dipakai
+- Menampilkan jumlah kamar tersedia dan sudah dipakai
+- Mencari kamar berdasarkan nama
+- Memfilter kamar berdasarkan harga maksimal dan fasilitas
+- Membandingkan hingga tiga kamar
 - Melihat foto, luas, fasilitas, harga, dan status kamar
 - Membuka halaman detail kamar
+- Melihat galeri foto kamar
+- Melihat breadcrumb dan kembali ke katalog
 - Melihat peraturan kos dan lokasi lingkungan
 - Menghubungi pengelola melalui WhatsApp
 - Tampilan responsif untuk HP dan laptop
+- Menampilkan animasi loading dan gambar pengganti
 
 ### Admin
 
@@ -31,6 +38,10 @@ Website katalog kamar Kos Primadona yang menyediakan informasi dua lokasi kos, f
 - Mengelola data lokasi
 - Menambah, mengubah, menghapus, dan mengunggah foto kamar
 - Mengubah status kamar secara cepat
+- Melihat riwayat perubahan status kamar
+- Mengelola nama penghuni dan hari jatuh tempo pembayaran
+- Melihat pengingat pembayaran bulanan
+- Mengubah nama lengkap dan password profil admin
 - Mengelola peraturan kos per lokasi
 
 ## Persyaratan
