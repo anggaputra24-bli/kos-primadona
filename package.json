@@ -4,10 +4,10 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "concurrently -k \"npm run server\" \"npm run client\"",
-    "client": "vite",
-    "server": "node server/index.js",
-    "build": "vite build",
-    "start": "node server/index.js"
+    "client": "vite frontend --config frontend/vite.config.mjs",
+    "server": "node backend/index.js",
+    "build": "vite build frontend --config frontend/vite.config.mjs",
+    "start": "node backend/index.js"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",

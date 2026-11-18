@@ -18,7 +18,7 @@ function Header({ admin = false }) {
   return (
     <header className="header">
       <Link className="brand" to="/">
-        <span className="brand-mark">K</span>
+        <img className="brand-mark" src="/primadona-mark.svg" alt="" />
         <span><b>KOS</b><strong>PRIMADONA</strong></span>
       </Link>
       <nav className="nav">
@@ -227,7 +227,7 @@ function Login() {
   return (
     <div className="login-page">
       <form className="login-card" onSubmit={submit}>
-        <Link className="brand" to="/"><span className="brand-mark">K</span><span><b>KOS</b><strong>PRIMADONA</strong></span></Link>
+        <Link className="brand" to="/"><img className="brand-mark" src="/primadona-mark.svg" alt="" /><span><b>KOS</b><strong>PRIMADONA</strong></span></Link>
         <span className="eyebrow">Panel Pengelola</span>
         <h1>Masuk Admin</h1>
         {error && <div className="error">{error}</div>}
@@ -280,7 +280,7 @@ function Admin() {
   return (
     <div className="admin-layout">
       <aside className="sidebar">
-        <Link className="brand light" to="/"><span className="brand-mark">K</span><span><b>KOS</b><strong>PRIMADONA</strong></span></Link>
+        <Link className="brand light" to="/"><img className="brand-mark" src="/primadona-mark.svg" alt="" /><span><b>KOS</b><strong>PRIMADONA</strong></span></Link>
         <nav>
           <button className={tab==='dashboard'?'active':''} onClick={()=>setTab('dashboard')}>▦ &nbsp; Dashboard</button>
           <button className={tab==='kamar'?'active':''} onClick={()=>setTab('kamar')}>▤ &nbsp; Kelola Kamar</button>
@@ -372,7 +372,7 @@ function RulesAdmin({locations,refresh}) {
 }
 
 function Footer() {
-  return <footer><div className="brand light"><span className="brand-mark">K</span><span><b>KOS</b><strong>PRIMADONA</strong></span></div><p>Hunian nyaman untuk hari-hari produktifmu.</p><span>© 2026 Kos Primadona</span></footer>;
+  return <footer><div className="brand light"><img className="brand-mark" src="/primadona-mark.svg" alt="" /><span><b>KOS</b><strong>PRIMADONA</strong></span></div><p>Hunian nyaman untuk hari-hari produktifmu.</p><span>© 2026 Kos Primadona</span></footer>;
 }
 
 createRoot(document.getElementById('root')).render(

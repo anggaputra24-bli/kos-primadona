@@ -1,6 +1,6 @@
 # Sistem Katalog Kos Primadona
 
-Website katalog kamar Kos Primadona yang menyediakan informasi dua lokasi kos, filter kamar berdasarkan lokasi dan ketersediaan, detail kamar, integrasi WhatsApp, serta dashboard pengelolaan admin.
+Website katalog kamar Kos Primadona yang menyediakan informasi dua lokasi kos, filter kamar berdasarkan lokasi dan ketersediaan, detail kamar, integrasi WhatsApp, serta dashboard pengelolaan admin. Kode frontend dan backend dikelompokkan dalam folder terpisah.
 
 ## Teknologi
 
@@ -71,6 +71,8 @@ npm install
 npm run dev
 ```
 
+Jalankan perintah dari folder utama project `D:\ProjectMPPL`.
+
 ### Menjalankan frontend saja
 
 ```bash
@@ -116,23 +118,63 @@ http://localhost:5173/admin/login
 npm run build
 ```
 
-Hasil build frontend tersimpan pada folder `dist/`.
+Hasil build frontend tersimpan pada folder `frontend/dist/`.
+
+## Mengirim Perubahan ke GitHub
+
+Jalankan perintah berikut dari folder utama project (`D:\ProjectMPPL`) di terminal:
+
+1. Periksa file yang berubah:
+
+```bash
+git status
+```
+
+2. Siapkan perubahan project untuk commit. Perintah ini tidak memasukkan cache di `node_modules`:
+
+```bash
+git add -A -- .gitignore README.md package.json backend frontend index.html server src vite.config.js
+```
+
+3. Periksa kembali file yang akan dikirim:
+
+```bash
+git status
+```
+
+4. Simpan perubahan sebagai commit:
+
+```bash
+git commit -m "Pisahkan struktur frontend dan backend"
+```
+
+5. Kirim commit ke GitHub:
+
+```bash
+git push -u origin main
+```
+
+Untuk perubahan berikutnya, ulangi langkah tersebut dan gunakan pesan commit yang menjelaskan perubahan, misalnya `git commit -m "Perbarui tampilan katalog"`. Jangan memasukkan file rahasia seperti `.env`, atau data lokal dan upload pengguna.
 
 ## Struktur Proyek
 
 ```text
 kos-primadona/
-├── src/
-│   ├── main.jsx
-│   └── styles.css
-├── server/
+├── backend/
 │   ├── index.js
 │   ├── uploads/
 │   └── data.json
-├── dist/
-├── index.html
-├── vite.config.js
-└── package.json
+├── frontend/
+│   ├── public/
+│   │   └── primadona-mark.svg
+│   ├── src/
+│   │   ├── main.jsx
+│   │   └── styles.css
+│   ├── index.html
+│   └── vite.config.mjs
+├── package.json
+├── package-lock.json
+└── README.md
 ```
 
 ## Endpoint API Utama
@@ -161,7 +203,7 @@ kos-primadona/
 
 ## Penyimpanan Data
 
-Untuk pengembangan lokal, data disimpan pada `server/data.json`. Upload foto disimpan pada `server/uploads/`.
+Untuk pengembangan lokal, data disimpan pada `backend/data.json`. Upload foto disimpan pada `backend/uploads/`.
 
 Untuk penggunaan produksi, bagian penyimpanan dapat diganti dengan MySQL atau PostgreSQL beserta Cloudinary atau penyimpanan objek lain.
 

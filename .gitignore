@@ -2,5 +2,6 @@ node_modules/
 .env
 *.log
 dist/
-server/data.json
-server/uploads/
+frontend/dist/
+backend/data.json
+backend/uploads/
