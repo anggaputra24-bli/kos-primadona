@@ -19,7 +19,6 @@ Website katalog kamar Kos Primadona yang menyediakan informasi dua lokasi kos, f
 - Memilih dua lokasi kos melalui tab lokasi
 - Memfilter kamar: Semua, Tersedia, atau Sudah Dipakai
 - Menampilkan jumlah kamar tersedia dan sudah dipakai
-- Mencari kamar berdasarkan nama
 - Memfilter kamar berdasarkan harga maksimal dan fasilitas
 - Membandingkan hingga tiga kamar
 - Melihat foto, luas, fasilitas, harga, dan status kamar
@@ -63,7 +62,11 @@ cd D:\ProjectMPPL
 npm install
 ```
 
+3. Siapkan kode rahasia admin. Salin `.env.example` menjadi `.env`, lalu isi `ADMIN_ACCESS_CODE` dengan kode acak minimal 16 karakter. Jangan bagikan atau commit file `.env`.
+
 ## Menjalankan Aplikasi
+
+Di halaman website, tekan `Ctrl+Z` (di luar kolom isian), masukkan kode rahasia, lalu login seperti biasa. Kode rahasia diverifikasi backend dan tiket aksesnya hanya berlaku 10 menit.
 
 ### Menjalankan frontend dan backend sekaligus
 
@@ -101,12 +104,14 @@ Vite sudah dikonfigurasi untuk meneruskan request `/api` dan `/uploads` ke backe
 
 ## Akun Admin Demo
 
+Untuk membuka login, tekan `Ctrl+Z` di halaman website (di luar kolom isian), masukkan kode rahasia, lalu login menggunakan akun berikut:
+
 ```text
 Username: admin
 Password: admin123
 ```
 
-Halaman login admin:
+Alamat halaman login setelah kode rahasia berhasil diverifikasi:
 
 ```text
 http://localhost:5173/admin/login

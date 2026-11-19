@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Link, Route, Routes, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import './styles.css';
 
 const api = async (url, options = {}) => {
   const token = localStorage.getItem('kp_token');
   const headers = { ...(options.headers || {}) };
-  if (token) headers.Authorization = `Bearer ${token}`;
+  if (token && !headers.Authorization) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(url, { ...options, headers });
   if (!res.ok) throw new Error((await res.json()).message || 'Terjadi kesalahan');
   return res.json();
@@ -14,7 +14,7 @@ const api = async (url, options = {}) => {
 
 const rupiah = n => new Intl.NumberFormat('id-ID').format(n);
 
-function Header({ admin = false }) {
+function Header() {
   return (
     <header className="header">
       <Link className="brand" to="/">
@@ -26,9 +26,6 @@ function Header({ admin = false }) {
         <a href="#katalog">Katalog</a>
         <a href="#tentang">Tentang</a>
       </nav>
-      <Link className="admin-link" to={admin ? '/admin/dashboard' : '/admin/login'}>
-        {admin ? 'Dashboard' : 'Login Admin'}
-      </Link>
     </header>
   );
 }
@@ -38,7 +35,6 @@ function Home() {
   const [rooms, setRooms] = useState([]);
   const [locationId, setLocationId] = useState(1);
   const [status, setStatus] = useState('semua');
-  const [search, setSearch] = useState('');
   const [maxPrice, setMaxPrice] = useState(1000000);
   const [facility, setFacility] = useState('');
   const [compare, setCompare] = useState([]);
@@ -52,7 +48,6 @@ function Home() {
 
   const visible = rooms.filter(r => r.lokasi_id === locationId &&
     (status === 'semua' || r.status === status) &&
-    r.nama_kamar.toLowerCase().includes(search.toLowerCase()) &&
     r.harga_sewa <= maxPrice &&
     (!facility || r.fasilitas.includes(facility)));
 
@@ -94,7 +89,6 @@ function Home() {
           </div>
 
           <div className="catalog-tools">
-            <label><span>Cari kamar</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Contoh: Kamar A1" /></label>
             <label><span>Harga maksimal</span><select value={maxPrice} onChange={e => setMaxPrice(Number(e.target.value))}><option value={1000000}>Semua harga</option><option value={750000}>Rp 750.000</option><option value={850000}>Rp 850.000</option><option value={1000000}>Rp 1.000.000</option></select></label>
             <label><span>Fasilitas</span><select value={facility} onChange={e => setFacility(e.target.value)}><option value="">Semua fasilitas</option>{['AC','WiFi','Kamar mandi dalam','Kasur','Lemari'].map(x => <option key={x}>{x}</option>)}</select></label>
           </div>
@@ -219,7 +213,9 @@ function Login() {
   const submit = async e => {
     e.preventDefault(); setError('');
     try {
-      const data = await api('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form) });
+      const accessToken = sessionStorage.getItem('kp_access_token');
+      const data = await api('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${accessToken || ''}`}, body:JSON.stringify(form) });
+      sessionStorage.removeItem('kp_access_token');
       localStorage.setItem('kp_token', data.token);
       navigate('/admin/dashboard');
     } catch (err) { setError(err.message); }
@@ -235,6 +231,82 @@ function Login() {
         <label>Password<input type="password" value={form.password} onChange={e => setForm({...form,password:e.target.value})} placeholder="Masukkan password" /></label>
         <button className="primary-btn" type="submit">Masuk Dashboard</button>
         <small>Demo: admin / admin123</small>
+      </form>
+    </div>
+  );
+}
+
+function AdminLoginGate() {
+  return sessionStorage.getItem('kp_access_token') ? <Login /> : <Navigate to="/" replace />;
+}
+
+function AdminAccessShortcut() {
+  const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const onKeyDown = event => {
+      const target = event.target;
+      const isEditing = target instanceof HTMLElement &&
+        (target.isContentEditable || target.matches('input, textarea, select'));
+      if (event.ctrlKey && !event.altKey && event.key.toLowerCase() === 'z' && !isEditing) {
+        event.preventDefault();
+        setCode('');
+        setError('');
+        setIsOpen(true);
+      }
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  const submit = async event => {
+    event.preventDefault();
+    setError('');
+    setSubmitting(true);
+    try {
+      const result = await api('/api/auth/admin-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+      sessionStorage.setItem('kp_access_token', result.token);
+      setIsOpen(false);
+      navigate('/admin/login');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+  return (
+    <div className="access-overlay" onMouseDown={event => {
+      if (event.target === event.currentTarget) setIsOpen(false);
+    }}>
+      <form className="access-card" onSubmit={submit}>
+        <button className="access-close" type="button" aria-label="Tutup" onClick={() => setIsOpen(false)}>×</button>
+        <span className="eyebrow">Akses Pengelola</span>
+        <h2>Masukkan kode rahasia</h2>
+        {error && <div className="error" role="alert">{error}</div>}
+        <label htmlFor="admin-access-code">Kode rahasia</label>
+        <input
+          id="admin-access-code"
+          type="password"
+          autoComplete="off"
+          autoFocus
+          value={code}
+          onChange={event => setCode(event.target.value)}
+          required
+        />
+        <button className="primary-btn" type="submit" disabled={submitting}>
+          {submitting ? 'Memeriksa...' : 'Lanjut ke login admin'}
+        </button>
       </form>
     </div>
   );
@@ -377,10 +449,11 @@ function Footer() {
 
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>
+    <AdminAccessShortcut />
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/kamar/:id" element={<Detail />} />
-      <Route path="/admin/login" element={<Login />} />
+      <Route path="/admin/login" element={<AdminLoginGate />} />
       <Route path="/admin/dashboard" element={<Admin />} />
     </Routes>
   </BrowserRouter>

@@ -1,16 +1,24 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const SECRET = process.env.JWT_SECRET || 'kos-primadona-dev-secret';
+const ADMIN_ACCESS_CODE = process.env.ADMIN_ACCESS_CODE;
+if (!ADMIN_ACCESS_CODE || ADMIN_ACCESS_CODE.length < 16) {
+  throw new Error('ADMIN_ACCESS_CODE wajib diatur di file .env dan minimal 16 karakter');
+}
 const dataFile = path.join(__dirname, 'data.json');
 const uploadsDir = path.join(__dirname, 'uploads');
+const adminAccessTickets = new Map();
 fs.mkdirSync(uploadsDir, { recursive: true });
 
 app.use(cors());
@@ -68,11 +76,38 @@ function auth(req, res, next) {
   try { req.user = jwt.verify(token, SECRET); next(); } catch { res.status(401).json({ message: 'Token tidak valid' }); }
 }
 
-app.post('/api/auth/login', (req, res) => {
+function adminAccess(req, res, next) {
+  const token = (req.headers.authorization || '').replace('Bearer ', '');
+  const expiresAt = adminAccessTickets.get(token);
+  if (!expiresAt || expiresAt <= Date.now()) {
+    adminAccessTickets.delete(token);
+    return res.status(401).json({ message: 'Verifikasi kode admin tidak valid atau kedaluwarsa' });
+  }
+  req.adminAccessTicket = token;
+  next();
+}
+
+app.post('/api/auth/admin-access', (req, res) => {
+  const submittedCode = typeof req.body.code === 'string' ? req.body.code : '';
+  const expectedHash = crypto.createHash('sha256').update(ADMIN_ACCESS_CODE).digest();
+  const submittedHash = crypto.createHash('sha256').update(submittedCode).digest();
+  if (!crypto.timingSafeEqual(submittedHash, expectedHash)) {
+    return res.status(401).json({ message: 'Kode rahasia salah' });
+  }
+  for (const [ticket, expiresAt] of adminAccessTickets) {
+    if (expiresAt <= Date.now()) adminAccessTickets.delete(ticket);
+  }
+  const token = crypto.randomBytes(32).toString('hex');
+  adminAccessTickets.set(token, Date.now() + 10 * 60 * 1000);
+  res.json({ token });
+});
+
+app.post('/api/auth/login', adminAccess, (req, res) => {
   const { username, password } = req.body;
   if (username !== db.admin.username || !bcrypt.compareSync(password || '', db.admin.password)) {
     return res.status(401).json({ message: 'Username atau password salah' });
   }
+  adminAccessTickets.delete(req.adminAccessTicket);
   const token = jwt.sign({ id: db.admin.id, username: db.admin.username }, SECRET, { expiresIn: '12h' });
   res.json({ token, admin: { username: db.admin.username, nama_lengkap: db.admin.nama_lengkap } });
 });
