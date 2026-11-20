@@ -211,12 +211,7 @@
   .flist { grid-template-columns:1fr; }
 }
 
-/* Netralkan aturan global lama dari styles.css */
-.site main { max-width:none; margin:0; padding:0; }
 .site main.dpage { max-width:1160px; margin:0 auto; padding:28px 24px 80px; }
-.site .site-footer { display:block; min-height:0; text-align:left; place-items:initial; }
-.site .site-footer p { margin:0 0 8px; font-size:14px; color:#cfc9c0; }
-.site .site-footer .foot-brand p { margin-top:14px; color:#a29b91; }
 .loc-tabs { overflow-y:hidden; scrollbar-width:none; }
 .loc-tabs::-webkit-scrollbar { display:none; }
 @media (max-width:640px) { .site main.dpage { padding:20px 16px 64px; } }

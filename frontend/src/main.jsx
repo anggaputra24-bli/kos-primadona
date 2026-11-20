@@ -22,7 +22,6 @@ const Icon = {
   arrow: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>,
   back: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>,
   close: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>,
-  ruler: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17 17 3l4 4L7 21z" /><path d="m7 13 2 2M10 10l2 2M13 7l2 2" /></svg>,
   chat: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19.6Z" /></svg>,
 };
 
@@ -362,6 +361,11 @@ function Login() {
   const [showPass, setShowPass] = useState(false);
   const [phase, setPhase] = useState('idle');
   const navigate = useNavigate();
+  useEffect(() => {
+    const onGranted = () => setError('');
+    window.addEventListener(ACCESS_GRANTED_EVENT, onGranted);
+    return () => window.removeEventListener(ACCESS_GRANTED_EVENT, onGranted);
+  }, []);
 
   const typed = text => Math.min(text.length / 22, 1);
   let mode = 'sleep';
@@ -394,7 +398,13 @@ function Login() {
       navigate('/admin/dashboard');
     } catch (err) {
       await wait(Math.max(0, 900 - (Date.now() - started)));
-      setPhase('error'); setError(err.message);
+      const accessExpired = /kode admin/i.test(err.message);
+      setPhase('error');
+      setError(accessExpired ? 'Kode rahasia sudah kedaluwarsa. Masukkan kode lagi, lalu tekan Masuk Dashboard.' : err.message);
+      if (accessExpired) {
+        sessionStorage.removeItem('kp_access_token');
+        window.dispatchEvent(new CustomEvent(OPEN_ACCESS_EVENT, { detail: 'Kode sebelumnya sudah kedaluwarsa. Masukkan kode rahasia lagi.' }));
+      }
       await wait(1200);
       setPhase(p => (p === 'error' ? 'idle' : p));
     }
@@ -444,6 +454,10 @@ function Login() {
   );
 }
 
+// Komunikasi antara halaman login dan jendela kode akses (Ctrl+Z).
+const OPEN_ACCESS_EVENT = 'kp:open-access';
+const ACCESS_GRANTED_EVENT = 'kp:access-granted';
+
 function AdminLoginGate() {
   return sessionStorage.getItem('kp_access_token') ? <Login /> : <Navigate to="/" replace />;
 }
@@ -468,8 +482,17 @@ function AdminAccessShortcut() {
       }
       if (event.key === 'Escape') setIsOpen(false);
     };
+    const onOpenRequest = event => {
+      setCode('');
+      setError(event.detail || '');
+      setIsOpen(true);
+    };
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener(OPEN_ACCESS_EVENT, onOpenRequest);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener(OPEN_ACCESS_EVENT, onOpenRequest);
+    };
   }, []);
 
   const submit = async event => {
@@ -484,6 +507,7 @@ function AdminAccessShortcut() {
       });
       sessionStorage.setItem('kp_access_token', result.token);
       setIsOpen(false);
+      window.dispatchEvent(new Event(ACCESS_GRANTED_EVENT));
       navigate('/admin/login');
     } catch (err) {
       setError(err.message);
