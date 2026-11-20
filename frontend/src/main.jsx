@@ -552,7 +552,13 @@ const AdIcon = {
   kamar: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M3 18h18M3 18v2M21 18v2M6 10V6h5v4" /></svg>,
   lokasi: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z" /><circle cx="12" cy="9.5" r="2.5" /></svg>,
   peraturan: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" /></svg>,
-  pengingat: <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>,
+  pembayaran: <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 10h18M16 15h2" /></svg>,
+  wa: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z" /><path d="M9 9.5c.3 2 2.2 4.2 4.5 4.8l1-1.1 1.8.8-.4 1.6c-3.8.2-7.6-3.6-7.4-7.4l1.6-.4.8 1.8z" /></svg>,
+  check: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>,
+  undo: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 0 12h-3" /></svg>,
+  prev: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>,
+  next: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>,
+  shield: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" /><path d="M12 8v4M12 15.5h.01" /></svg>,
   riwayat: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5M12 8v4l3 2" /></svg>,
   profil: <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>,
   out: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" /></svg>,
@@ -561,6 +567,7 @@ const AdIcon = {
   trash: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>,
   plus: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>,
   close: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>,
+  download: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>,
 };
 
 const ADMIN_TABS = [
@@ -568,7 +575,7 @@ const ADMIN_TABS = [
   ['kamar', 'Kamar'],
   ['lokasi', 'Lokasi'],
   ['peraturan', 'Peraturan'],
-  ['pengingat', 'Pengingat bayar'],
+  ['pembayaran', 'Pembayaran'],
   ['riwayat', 'Riwayat status'],
   ['profil', 'Profil admin'],
 ];
@@ -580,6 +587,7 @@ function Admin() {
   const [rooms, setRooms] = useState([]);
   const [history, setHistory] = useState([]);
   const [reminders, setReminders] = useState([]);
+  const [me, setMe] = useState(null);
   const [editing, setEditing] = useState(null);
   const [message, setMessage] = useState('');
 
@@ -594,10 +602,10 @@ function Admin() {
   }, [message]);
   const refresh = async () => {
     try {
-      const [l,r,h,m] = await Promise.all([
-        api('/api/lokasi'), api('/api/kamar'), api('/api/riwayat-status'), api('/api/pengingat-bayar')
+      const [l,r,h,m,profile] = await Promise.all([
+        api('/api/lokasi'), api('/api/kamar'), api('/api/riwayat-status'), api('/api/pengingat-bayar'), api('/api/auth/me')
       ]);
-      setLocations(l); setRooms(r); setHistory(h); setReminders(m);
+      setLocations(l); setRooms(r); setHistory(h); setReminders(m); setMe(profile);
     }
     catch { navigate('/admin/login'); }
   };
@@ -610,14 +618,43 @@ function Admin() {
   const submitRoom = async e => {
     e.preventDefault();
     const form = new FormData(e.target);
-    const saved = await api(editing?.id ? `/api/kamar/${editing.id}` : '/api/kamar', { method: editing?.id ? 'PUT':'POST', body: form });
-    await api(`/api/kamar/${saved.id}/penghuni`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({tenant: form.get('tenant') || '', due_day: form.get('due_day') || null}) });
-    setEditing(null); setMessage('Data kamar berhasil disimpan.'); refresh();
+    const tenantData = { tenant: form.get('tenant') || '', tenant_phone: form.get('tenant_phone') || '', due_day: form.get('due_day') || null };
+    ['tenant', 'tenant_phone', 'due_day'].forEach(k => form.delete(k));
+    if (!form.get('foto')?.size) form.delete('foto');
+    try {
+      const saved = await api(editing?.id ? `/api/kamar/${editing.id}` : '/api/kamar', { method: editing?.id ? 'PUT':'POST', body: form });
+      await api(`/api/kamar/${saved.id}/penghuni`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(tenantData) });
+      setEditing(null); setMessage('Data kamar berhasil disimpan.'); refresh();
+    } catch (err) {
+      setMessage(err.message);
+    }
   };
   const openEdit = room => { setEditing(room); setTab('kamar'); window.scrollTo(0, 0); };
+  const [exporting, setExporting] = useState(false);
+  const downloadExcel = async () => {
+    setExporting(true);
+    try {
+      const res = await fetch('/api/export/excel', { headers: { Authorization: `Bearer ${localStorage.getItem('kp_token')}` } });
+      if (res.status === 401) return navigate('/admin/login');
+      if (!res.ok) throw new Error();
+      const name = res.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'data-kos-primadona.xlsx';
+      const url = URL.createObjectURL(await res.blob());
+      const a = Object.assign(document.createElement('a'), { href: url, download: name });
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setMessage('File Excel berhasil diunduh.');
+    } catch {
+      setMessage('Gagal membuat file Excel. Coba lagi.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const occupied = rooms.filter(r => r.status === 'sudah_dipakai');
-  const income = occupied.reduce((sum, r) => sum + Number(r.harga_sewa || 0), 0);
+  const billed = reminders.reduce((sum, b) => sum + b.harga_sewa, 0);
+  const received = reminders.reduce((sum, b) => sum + (b.payment?.jumlah || 0), 0);
+  const unpaid = reminders.filter(b => b.status !== 'lunas').length;
+  const needsAttention = reminders.some(b => b.status === 'terlambat' || b.status === 'segera' || b.tunggakan.length);
   const locName = id => locations.find(l => l.id === id)?.nama_lokasi || `Lokasi ${id}`;
   const title = ADMIN_TABS.find(([k]) => k === tab)?.[1];
   const today = new Date().toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
@@ -631,7 +668,8 @@ function Admin() {
           {ADMIN_TABS.map(([key, label]) => (
             <button key={key} className={tab === key ? 'is-active' : ''} onClick={() => setTab(key)}>
               {AdIcon[key]}<span>{label}</span>
-              {key === 'pengingat' && reminders.some(r => r.daysLeft <= 3) && <i className="adm-dot" aria-label="Ada pembayaran mendekati jatuh tempo" />}
+              {key === 'pembayaran' && needsAttention && <i className="adm-dot" aria-label="Ada tagihan yang perlu ditindaklanjuti" />}
+              {key === 'profil' && me?.default_password && <i className="adm-dot" aria-label="Password bawaan belum diganti" />}
             </button>
           ))}
         </nav>
@@ -647,16 +685,26 @@ function Admin() {
             <p>{today}</p>
             <h1>{title}</h1>
           </div>
-          {tab === 'kamar' && !editing && <button className="btn btn-dark" onClick={() => setEditing({})}>{AdIcon.plus}Tambah kamar</button>}
+          <div className="adm-head-actions">
+            <button className="btn btn-line" onClick={downloadExcel} disabled={exporting}>{AdIcon.download}{exporting ? 'Menyiapkan…' : 'Unduh Excel'}</button>
+            {tab === 'kamar' && !editing && <button className="btn btn-dark" onClick={() => setEditing({})}>{AdIcon.plus}Tambah kamar</button>}
+          </div>
         </header>
         {message && <div className="adm-toast" role="status">{message}<button onClick={() => setMessage('')} aria-label="Tutup">{AdIcon.close}</button></div>}
+        {me?.default_password && tab !== 'profil' && (
+          <div className="adm-alert" role="alert">
+            {AdIcon.shield}
+            <p><b>Akun masih memakai password bawaan.</b> Siapa pun yang tahu password standar bisa masuk ke dashboard. Ganti sekarang agar data penghuni aman.</p>
+            <button className="btn btn-dark" onClick={() => setTab('profil')}>Ganti password</button>
+          </div>
+        )}
 
         {tab === 'dashboard' && <>
           <dl className="adm-stats">
             <div><dt>Total kamar</dt><dd>{rooms.length}</dd><small>di {locations.length} lokasi</small></div>
             <div><dt>Tersedia</dt><dd className="ok">{rooms.length - occupied.length}</dd><small>siap disewakan</small></div>
             <div><dt>Terisi</dt><dd>{occupied.length}</dd><small>{rooms.length ? Math.round(occupied.length / rooms.length * 100) : 0}% tingkat hunian</small></div>
-            <div><dt>Pemasukan / bulan</dt><dd>Rp{rupiah(income)}</dd><small>dari kamar terisi</small></div>
+            <div><dt>Diterima bulan ini</dt><dd>Rp{rupiah(received)}</dd><small>{billed ? `dari Rp${rupiah(billed)} · ${unpaid ? `${unpaid} belum bayar` : 'semua lunas'}` : 'belum ada tagihan'}</small></div>
           </dl>
           <div className="adm-cols">
             <section className="adm-panel">
@@ -664,9 +712,9 @@ function Admin() {
               <RoomTable rooms={rooms} toggle={toggle} removeRoom={removeRoom} edit={openEdit} locName={locName} compact />
             </section>
             <section className="adm-panel">
-              <div className="adm-panel-head"><h2>Jatuh tempo terdekat</h2><button className="adm-link" onClick={() => setTab('pengingat')}>Lihat semua</button></div>
+              <div className="adm-panel-head"><h2>Tagihan bulan ini</h2><button className="adm-link" onClick={() => setTab('pembayaran')}>Kelola</button></div>
               {reminders.length === 0 ? <p className="adm-empty">Belum ada penghuni dengan tanggal jatuh tempo.</p> :
-                <ul className="adm-due">{reminders.slice(0, 5).map(r => <ReminderRow key={r.id} r={r} />)}</ul>}
+                <ul className="adm-due">{reminders.slice(0, 5).map(b => <BillSummaryRow key={b.kamar_id} b={b} />)}</ul>}
             </section>
           </div>
         </>}
@@ -682,7 +730,8 @@ function Admin() {
               <label className="wide">Fasilitas<input name="fasilitas" defaultValue={editing.fasilitas?.join(', ')||''} placeholder="Kasur, Lemari, AC" /><small>Pisahkan dengan koma.</small></label>
               <label>Status<select name="status" defaultValue={editing.status||'tersedia'}><option value="tersedia">Tersedia</option><option value="sudah_dipakai">Terisi</option></select></label>
               <label>Nama penghuni<input name="tenant" defaultValue={editing.tenant||''} placeholder="Kosongkan jika tersedia" /></label>
-              <label>Tanggal jatuh tempo<input name="due_day" type="number" min="1" max="28" defaultValue={editing.due_day||''} placeholder="1–28" /></label>
+              <label>No. HP / WhatsApp penghuni<input name="tenant_phone" type="tel" inputMode="tel" defaultValue={editing.tenant_phone ? `0${editing.tenant_phone.slice(2)}` : ''} placeholder="081234567890" /><small>Dipakai untuk tombol pengingat WhatsApp.</small></label>
+              <label>Tanggal jatuh tempo<input name="due_day" type="number" min="1" max="31" defaultValue={editing.due_day||''} placeholder="1–31" /><small>Tanggal 29–31 otomatis jadi akhir bulan untuk bulan yang lebih pendek.</small></label>
               <label>Foto kamar<input name="foto" type="file" accept="image/*" /></label>
               <div className="adm-form-actions wide"><button type="button" className="btn btn-line" onClick={()=>setEditing(null)}>Batal</button><button className="btn btn-dark" type="submit">Simpan</button></div>
             </form>
@@ -694,10 +743,7 @@ function Admin() {
 
         {tab === 'lokasi' && <LocationAdmin locations={locations} rooms={rooms} refresh={refresh} setMessage={setMessage} />}
         {tab === 'peraturan' && <RulesAdmin locations={locations} refresh={refresh} setMessage={setMessage} />}
-        {tab === 'pengingat' && <section className="adm-panel">
-          {reminders.length === 0 ? <p className="adm-empty">Belum ada penghuni dengan tanggal jatuh tempo. Isi nama penghuni dan tanggal jatuh tempo di menu Kamar.</p> :
-            <ul className="adm-due">{reminders.map(r => <ReminderRow key={r.id} r={r} full />)}</ul>}
-        </section>}
+        {tab === 'pembayaran' && <PaymentsAdmin setMessage={setMessage} onChange={refresh} editRoom={id => { const room = rooms.find(r => r.id === id); if (room) openEdit(room); }} />}
         {tab === 'riwayat' && <section className="adm-panel">
           {history.length === 0 ? <p className="adm-empty">Belum ada perubahan status.</p> :
             <ol className="adm-history">{history.map(h => {
@@ -705,37 +751,200 @@ function Admin() {
               return <li key={h.id}><span className={`avail ${h.status === 'tersedia' ? 'yes' : 'no'}`}>{h.status === 'tersedia' ? 'Tersedia' : 'Terisi'}</span><b>{room?.nama_kamar || `Kamar ${h.kamar_id}`}</b><small>{new Date(h.waktu).toLocaleString('id-ID', { dateStyle:'medium', timeStyle:'short' })} · {h.admin}</small></li>;
             })}</ol>}
         </section>}
-        {tab === 'profil' && <ProfileAdmin setMessage={setMessage} />}
+        {tab === 'profil' && me && <ProfileAdmin me={me} setMe={setMe} setMessage={setMessage} />}
       </main>
     </div>
   );
 }
 
-function ReminderRow({ r, full }) {
-  const urgent = r.daysLeft <= 3;
+// ===== Pembayaran =====
+const pad2 = n => String(n).padStart(2, '0');
+const toPeriod = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+const todayYmd = () => { const d = new Date(); return `${toPeriod(d)}-${pad2(d.getDate())}`; };
+const shiftPeriod = (p, n) => { const [y, m] = p.split('-').map(Number); return toPeriod(new Date(y, m - 1 + n, 1)); };
+const monthLabel = p => { const [y, m] = p.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }); };
+const dateLabel = (s, opts = { day: 'numeric', month: 'long', year: 'numeric' }) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('id-ID', opts); };
+const STATUS_TEXT = { lunas: 'Lunas', terlambat: 'Terlambat', segera: 'Segera', belum: 'Belum bayar' };
+
+const dueText = b => {
+  if (b.status === 'lunas') return `Dibayar ${dateLabel(b.payment.tanggal, { day: 'numeric', month: 'short' })}`;
+  if (b.daysLeft < 0) return `Lewat ${-b.daysLeft} hari`;
+  if (b.daysLeft === 0) return 'Jatuh tempo hari ini';
+  if (b.daysLeft === 1) return 'Jatuh tempo besok';
+  return `${b.daysLeft} hari lagi`;
+};
+
+// Pesan WhatsApp disesuaikan dengan status tagihan.
+function waMessage(b) {
+  const greet = `Halo ${b.tenant}, kami dari pengelola ${b.lokasi || 'Kos Primadona'}.`;
+  const sign = '\n\nTerima kasih,\nPengelola Kos Primadona';
+  if (b.status === 'lunas') {
+    return `${greet}\n\nPembayaran sewa ${b.nama_kamar} untuk ${monthLabel(b.periode)} sebesar Rp${rupiah(b.payment.jumlah)} sudah kami terima pada ${dateLabel(b.payment.tanggal)} (${b.payment.metode === 'transfer' ? 'transfer' : 'tunai'}).${sign}`;
+  }
+  const amount = `Rp${rupiah(b.harga_sewa)}`;
+  const when = b.daysLeft === 0 ? 'hari ini' : b.daysLeft === 1 ? 'besok' : `pada ${dateLabel(b.jatuh_tempo)}`;
+  const body = b.status === 'terlambat'
+    ? `Kami ingin mengingatkan bahwa sewa ${b.nama_kamar} untuk ${monthLabel(b.periode)} sebesar ${amount} sudah melewati jatuh tempo (${dateLabel(b.jatuh_tempo)}). Mohon pembayaran dapat segera dilakukan.`
+    : `Kami ingin mengingatkan bahwa sewa ${b.nama_kamar} untuk ${monthLabel(b.periode)} sebesar ${amount} jatuh tempo ${when}.`;
+  const arrears = b.tunggakan.filter(p => p !== b.periode);
+  const arrearsNote = arrears.length ? `\n\nSelain itu, pembayaran untuk ${arrears.map(monthLabel).join(', ')} juga belum kami terima.` : '';
+  return `${greet}\n\n${body}${arrearsNote}\n\nAbaikan pesan ini jika sudah membayar.${sign}`;
+}
+const waLink = b => `https://wa.me/${b.tenant_phone}?text=${encodeURIComponent(waMessage(b))}`;
+
+function BillSummaryRow({ b }) {
   return (
-    <li className={urgent ? 'is-urgent' : ''}>
-      <div><b>{r.nama_kamar}</b><span>{r.tenant}{full ? ` · tanggal ${r.due_day} tiap bulan` : ''}</span></div>
-      <strong>{r.daysLeft > 0 ? `${r.daysLeft} hari lagi` : r.daysLeft === 0 ? 'Hari ini' : 'Terlambat'}</strong>
+    <li className={`is-${b.status}`}>
+      <div><b>{b.nama_kamar}</b><span>{b.tenant}</span></div>
+      <span className={`chip ${b.status}`}>{b.status === 'lunas' ? 'Lunas' : dueText(b)}</span>
     </li>
   );
 }
 
-function ProfileAdmin({setMessage}) {
+function PaymentsAdmin({ setMessage, onChange, editRoom }) {
+  const [periode, setPeriode] = useState(() => toPeriod(new Date()));
+  const [data, setData] = useState(null);
+  const [recording, setRecording] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const load = async (p = periode) => {
+    try { setData(await api(`/api/pembayaran?periode=${p}`)); }
+    catch (err) { setMessage(err.message); }
+  };
+  useEffect(() => { setData(null); setRecording(null); load(periode); }, [periode]);
+
+  const record = async e => {
+    e.preventDefault();
+    const form = Object.fromEntries(new FormData(e.target));
+    setBusy(true);
+    try {
+      await api('/api/pembayaran', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, kamar_id: recording.kamar_id, periode }) });
+      setMessage(`Pembayaran ${recording.nama_kamar} untuk ${monthLabel(periode)} tercatat.`);
+      setRecording(null); await load(); onChange();
+    } catch (err) { setMessage(err.message); }
+    finally { setBusy(false); }
+  };
+  const cancel = async b => {
+    if (!confirm(`Batalkan catatan pembayaran ${b.nama_kamar} untuk ${monthLabel(b.periode)}?`)) return;
+    try {
+      await api(`/api/pembayaran/${b.payment.id}`, { method: 'DELETE' });
+      setMessage('Catatan pembayaran dibatalkan.'); await load(); onChange();
+    } catch (err) { setMessage(err.message); }
+  };
+
+  const s = data?.ringkasan;
+  const isCurrent = periode === toPeriod(new Date());
+  return (
+    <>
+      <div className="pay-bar">
+        <div className="pay-period" role="group" aria-label="Pilih bulan">
+          <button className="adm-icon" onClick={() => setPeriode(p => shiftPeriod(p, -1))} aria-label="Bulan sebelumnya">{AdIcon.prev}</button>
+          <strong>{monthLabel(periode)}</strong>
+          <button className="adm-icon" onClick={() => setPeriode(p => shiftPeriod(p, 1))} aria-label="Bulan berikutnya">{AdIcon.next}</button>
+        </div>
+        {!isCurrent && <button className="adm-link" onClick={() => setPeriode(toPeriod(new Date()))}>Kembali ke bulan ini</button>}
+      </div>
+
+      <dl className="adm-stats">
+        <div><dt>Tagihan {monthLabel(periode).split(' ')[0]}</dt><dd>Rp{rupiah(s?.ditagih || 0)}</dd><small>{data ? `total sewa ${data.tagihan.length} penghuni` : '…'}</small></div>
+        <div><dt>Sudah diterima</dt><dd className="ok">Rp{rupiah(s?.diterima || 0)}</dd><small>{s ? `${s.lunas} lunas · ${s.ditagih ? Math.round(Math.min(s.diterima, s.ditagih) / s.ditagih * 100) : 0}% terkumpul` : '…'}</small></div>
+        <div><dt>Sisa tagihan</dt><dd className={s && s.belum === 0 && s.ditagih ? 'ok' : ''}>Rp{rupiah(Math.max(0, (s?.ditagih || 0) - (s?.diterima || 0)))}</dd><small>{s ? (s.belum ? `${s.belum} penghuni belum bayar` : s.ditagih ? 'semua sudah lunas' : '–') : '…'}</small></div>
+        <div><dt>Terlambat</dt><dd className={s?.terlambat ? 'late' : ''}>{s?.terlambat ?? 0}</dd><small>lewat jatuh tempo</small></div>
+      </dl>
+
+      <section className="adm-panel">
+        {!data ? <p className="adm-empty">Memuat tagihan…</p> :
+          data.tagihan.length === 0 ? <p className="adm-empty">Belum ada penghuni dengan tanggal jatuh tempo. Isi nama penghuni, nomor HP, dan tanggal jatuh tempo di menu Kamar.</p> :
+          <ul className="bills">
+            {data.tagihan.map(b => (
+              <li key={b.kamar_id} className={`bill is-${b.status}`}>
+                <div className="bill-who">
+                  <b>{b.tenant}</b>
+                  <span>{b.nama_kamar} · {b.lokasi}</span>
+                  {b.tunggakan.filter(p => p !== periode).length > 0 && (
+                    <span className="bill-arrears">Menunggak: {b.tunggakan.filter(p => p !== periode).map(p => (
+                      <button key={p} className="adm-link" onClick={() => setPeriode(p)}>{monthLabel(p)}</button>
+                    ))}</span>
+                  )}
+                </div>
+                <div className="bill-due">
+                  <span>Jatuh tempo {dateLabel(b.jatuh_tempo, { day: 'numeric', month: 'short' })}</span>
+                  <b className="num">Rp{rupiah(b.status === 'lunas' ? b.payment.jumlah : b.harga_sewa)}</b>
+                </div>
+                <div className="bill-status">
+                  <span className={`chip ${b.status}`}>{STATUS_TEXT[b.status]}</span>
+                  <small>{b.status === 'lunas' ? `${dateLabel(b.payment.tanggal, { day: 'numeric', month: 'short' })} · ${b.payment.metode === 'transfer' ? 'Transfer' : 'Tunai'}` : dueText(b)}</small>
+                </div>
+                <div className="bill-actions">
+                  {b.tenant_phone
+                    ? <a className="btn btn-line btn-sm" href={waLink(b)} target="_blank" rel="noreferrer" title={b.status === 'lunas' ? 'Kirim bukti terima via WhatsApp' : 'Kirim pengingat via WhatsApp'}>{AdIcon.wa}{b.status === 'lunas' ? 'Kirim bukti' : 'Ingatkan'}</a>
+                    : <button className="btn btn-line btn-sm" onClick={() => editRoom(b.kamar_id)} title="Nomor HP penghuni belum diisi">{AdIcon.wa}Isi no. HP</button>}
+                  {b.status === 'lunas'
+                    ? <button className="adm-icon" onClick={() => cancel(b)} aria-label="Batalkan pembayaran" title="Batalkan pembayaran">{AdIcon.undo}</button>
+                    : <button className="btn btn-dark btn-sm" onClick={() => setRecording(recording?.kamar_id === b.kamar_id ? null : b)}>{AdIcon.check}Catat bayar</button>}
+                </div>
+                {recording?.kamar_id === b.kamar_id && (
+                  <form className="adm-form bill-form" onSubmit={record}>
+                    <label>Jumlah (Rp)<input name="jumlah" type="number" min="1" defaultValue={b.harga_sewa} required autoFocus /></label>
+                    <label>Tanggal bayar<input name="tanggal" type="date" defaultValue={todayYmd()} max={todayYmd()} required /></label>
+                    <label>Metode<select name="metode" defaultValue="tunai"><option value="tunai">Tunai</option><option value="transfer">Transfer</option></select></label>
+                    <label>Catatan<input name="catatan" maxLength="200" placeholder="Opsional, mis. lewat BCA" /></label>
+                    <div className="adm-form-actions wide">
+                      <button type="button" className="btn btn-line" onClick={() => setRecording(null)}>Batal</button>
+                      <button className="btn btn-dark" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan pembayaran'}</button>
+                    </div>
+                  </form>
+                )}
+              </li>
+            ))}
+          </ul>}
+      </section>
+    </>
+  );
+}
+
+function ProfileAdmin({ me, setMe, setMessage }) {
+  const [error, setError] = useState('');
+  const [pw, setPw] = useState('');
+  const [saving, setSaving] = useState(false);
+  const checks = [
+    [pw.length >= 8, 'Minimal 8 karakter'],
+    [/[a-zA-Z]/.test(pw) && /\d/.test(pw), 'Mengandung huruf dan angka'],
+    [pw && pw !== 'admin123' && !pw.toLowerCase().includes(me.username.toLowerCase()), 'Bukan password bawaan / nama pengguna'],
+  ];
   const save = async e => {
     e.preventDefault();
     const form = new FormData(e.target);
-    const body = { nama_lengkap: form.get('nama_lengkap'), password: form.get('password') || undefined };
-    await api('/api/auth/profil', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
-    e.target.reset();
-    setMessage('Profil admin berhasil diperbarui.');
+    const password = form.get('password');
+    setError('');
+    if (password && password !== form.get('konfirmasi')) return setError('Konfirmasi password tidak sama.');
+    if (password && !checks.every(([ok]) => ok)) return setError('Password baru belum memenuhi syarat di bawah.');
+    setSaving(true);
+    try {
+      const body = { nama_lengkap: form.get('nama_lengkap'), ...(password ? { password, password_lama: form.get('password_lama') } : {}) };
+      const result = await api('/api/auth/profil', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+      if (result.token) localStorage.setItem('kp_token', result.token);
+      setMe(m => ({ ...m, nama_lengkap: result.nama_lengkap, default_password: result.default_password }));
+      ['password_lama', 'password', 'konfirmasi'].forEach(n => { e.target.elements[n].value = ''; });
+      setPw('');
+      setMessage(password ? 'Password berhasil diganti. Sesi di perangkat lain otomatis keluar.' : 'Profil admin berhasil diperbarui.');
+    } catch (err) { setError(err.message); }
+    finally { setSaving(false); }
   };
   return (
     <section className="adm-panel adm-narrow">
+      {me.default_password && <div className="adm-alert inline">{AdIcon.shield}<p><b>Ganti password bawaan.</b> Password <code>admin123</code> mudah ditebak siapa saja.</p></div>}
       <form onSubmit={save} className="adm-form one">
-        <label>Nama lengkap<input name="nama_lengkap" defaultValue="Pengelola Primadona" /></label>
-        <label>Password baru<input name="password" type="password" placeholder="Kosongkan jika tidak ingin mengubah" /></label>
-        <div className="adm-form-actions"><button className="btn btn-dark">Simpan profil</button></div>
+        <label>Username<input value={me.username} disabled /></label>
+        <label>Nama lengkap<input name="nama_lengkap" defaultValue={me.nama_lengkap} maxLength="80" /></label>
+        <fieldset className="adm-fieldset">
+          <legend>Ganti password</legend>
+          <label>Password lama<input name="password_lama" type="password" autoComplete="current-password" /></label>
+          <label>Password baru<input name="password" type="password" autoComplete="new-password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Kosongkan jika tidak ingin mengubah" /></label>
+          {pw && <ul className="pw-checks">{checks.map(([ok, text]) => <li key={text} className={ok ? 'ok' : ''}>{ok ? AdIcon.check : AdIcon.close}{text}</li>)}</ul>}
+          <label>Ulangi password baru<input name="konfirmasi" type="password" autoComplete="new-password" /></label>
+        </fieldset>
+        {error && <p className="adm-error" role="alert">{error}</p>}
+        <div className="adm-form-actions"><button className="btn btn-dark" disabled={saving}>{saving ? 'Menyimpan…' : 'Simpan profil'}</button></div>
       </form>
     </section>
   );
