@@ -38,15 +38,26 @@ Website katalog kamar Kos Primadona yang menyediakan informasi dua lokasi kos, f
 - Menambah, mengubah, menghapus, dan mengunggah foto kamar
 - Mengubah status kamar secara cepat
 - Melihat riwayat perubahan status kamar
-- Mengelola nama penghuni dan hari jatuh tempo pembayaran
-- Melihat pengingat pembayaran bulanan
+- Mengelola nama penghuni, nomor HP, dan tanggal jatuh tempo pembayaran
+- Mencatat pembayaran sewa per bulan (lunas, terlambat, tunggakan) dan membatalkannya
+- Mengirim pengingat tagihan atau bukti pembayaran lewat WhatsApp
+- Mengunduh seluruh data ke file Excel
 - Mengubah nama lengkap dan password profil admin
 - Mengelola peraturan kos per lokasi
 
+### Keamanan
+
+- Halaman login hanya terbuka setelah kode rahasia benar (`Ctrl+Z`)
+- Kode rahasia dan login dikunci 15 menit setelah 5 kali salah
+- Data penghuni tidak dikirim ke website publik
+- Password baru wajib kuat; menggantinya mengeluarkan sesi di perangkat lain
+- Unggahan hanya menerima gambar (maks. 5 MB)
+
 ## Persyaratan
 
-- Node.js versi 18 atau lebih baru
+- Node.js versi 22 atau lebih baru
 - npm
+- Google Chrome (hanya untuk tes E2E)
 
 ## Instalasi
 
@@ -62,11 +73,28 @@ cd D:\ProjectMPPL
 npm install
 ```
 
-3. Siapkan kode rahasia admin. Salin `.env.example` menjadi `.env`, lalu isi `ADMIN_ACCESS_CODE` dengan kode acak minimal 16 karakter. Jangan bagikan atau commit file `.env`.
+3. Salin `.env.example` menjadi `.env`, lalu isi:
+   - `ADMIN_ACCESS_CODE`: kode rahasia minimal 16 karakter
+   - `JWT_SECRET`: teks acak minimal 32 karakter (cara membuatnya ada di `.env.example`)
+
+   Jangan bagikan atau commit file `.env`.
 
 ## Menjalankan Aplikasi
 
-Di halaman website, tekan `Ctrl+Z` (di luar kolom isian), masukkan kode rahasia, lalu login seperti biasa. Kode rahasia diverifikasi backend dan tiket aksesnya hanya berlaku 10 menit.
+Untuk membuka login admin:
+
+- **Laptop/komputer:** tekan `Ctrl+Z` di halaman website (di luar kolom isian).
+- **HP/tablet:** ketuk logo **Kos Primadona** di bagian atas **5 kali dengan cepat**.
+
+Setelah itu masukkan kode rahasia, lalu login seperti biasa. Kode rahasia diverifikasi backend dan tiket aksesnya hanya berlaku 10 menit.
+
+### Membuka dari HP di Wi-Fi yang sama
+
+```bash
+npx concurrently -k "npm run server" "npm run client -- --host"
+```
+
+Buka alamat `Network` yang muncul di terminal (misalnya `http://192.168.1.43:5173`) dari browser HP.
 
 ### Menjalankan frontend dan backend sekaligus
 
@@ -117,6 +145,58 @@ Alamat halaman login setelah kode rahasia berhasil diverifikasi:
 http://localhost:5173/admin/login
 ```
 
+Segera ganti password bawaan ini lewat menu **Profil admin**.
+
+## Pengujian
+
+Tes berjalan dengan server dan data contoh tersendiri, jadi `backend/data.json`, `.env`, dan server dev Anda tidak tersentuh.
+
+| Perintah | Isi | Waktu |
+|---|---|---|
+| `npm test` | Tes API: privasi data penghuni, login & pembatasan percobaan, pembayaran, ganti password, unggah foto, unduh Excel | ±10 detik |
+| `npm run test:e2e` | Tes E2E di browser: alur Ctrl+Z → login → dashboard, catat bayar & WhatsApp, tampilan iPhone | ±1 menit |
+| `npm run test:all` | Keduanya | |
+
+Tes E2E berjalan di tiga perangkat:
+
+| Perangkat | Browser | Isi |
+|---|---|---|
+| `laptop` (1280×900) | Google Chrome | semua alur |
+| `iPhone 17` (402×874) | WebKit, mesin Safari, layar sentuh | website publik & tampilan HP |
+| `iPhone 17 Pro Max` (440×956) | WebKit, mesin Safari, layar sentuh | website publik & tampilan HP |
+
+Persiapan sekali saja sebelum menjalankan tes iPhone:
+
+```bash
+npx playwright install webkit
+```
+
+Menjalankan satu perangkat saja, misalnya iPhone: `npx playwright test --project "iPhone 17"`.
+Screenshot setiap layar iPhone tersimpan di `tests/.tmp/screens/`.
+
+Jika Google Chrome tidak terpasang, gunakan Chromium bawaan Playwright:
+
+```bash
+npx playwright install chromium
+PW_CHANNEL=chromium npm run test:e2e
+```
+
+Jika ada tes E2E yang gagal, buka laporannya (berisi screenshot dan rekaman langkah):
+
+```bash
+npx playwright show-report tests/.tmp/playwright-report
+```
+
+Lokasi file tes:
+
+```text
+tests/
+├── api/api.test.mjs          # tes API (node:test)
+├── e2e/*.spec.mjs            # tes browser (Playwright)
+└── support/                  # server & pengaturan khusus tes
+playwright.config.mjs
+```
+
 ## Build Produksi
 
 ```bash
@@ -135,10 +215,10 @@ Jalankan perintah berikut dari folder utama project (`D:\ProjectMPPL`) di termin
 git status
 ```
 
-2. Siapkan perubahan project untuk commit. Perintah ini tidak memasukkan cache di `node_modules`:
+2. Siapkan perubahan project untuk commit. File rahasia (`.env`), data lokal, foto unggahan, `node_modules`, dan hasil tes sudah dikecualikan lewat `.gitignore`:
 
 ```bash
-git add -A -- .gitignore README.md package.json backend frontend index.html server src vite.config.js
+git add -A
 ```
 
 3. Periksa kembali file yang akan dikirim:
@@ -150,7 +230,7 @@ git status
 4. Simpan perubahan sebagai commit:
 
 ```bash
-git commit -m "Pisahkan struktur frontend dan backend"
+git commit -m "Jelaskan perubahan Anda di sini"
 ```
 
 5. Kirim commit ke GitHub:
@@ -173,10 +253,18 @@ kos-primadona/
 │   ├── public/
 │   │   └── primadona-mark.svg
 │   ├── src/
-│   │   ├── main.jsx
-│   │   └── styles.css
+│   │   ├── main.jsx       # semua halaman (React)
+│   │   ├── lodge.css      # tema tampilan (website & dashboard admin)
+│   │   ├── site.css       # tata letak dasar, dashboard, jendela kode rahasia
+│   │   └── styles.css     # halaman login admin
 │   ├── index.html
 │   └── vite.config.mjs
+├── tests/
+│   ├── api/               # tes API
+│   ├── e2e/               # tes browser (laptop & iPhone)
+│   └── support/           # server khusus tes
+├── playwright.config.mjs
+├── .env.example
 ├── package.json
 ├── package-lock.json
 └── README.md
@@ -205,6 +293,13 @@ kos-primadona/
 | PATCH | `/api/kamar/:id/status` | Mengubah status kamar |
 | DELETE | `/api/kamar/:id` | Menghapus kamar |
 | PUT | `/api/lokasi/:id/peraturan` | Mengubah peraturan lokasi |
+| PUT | `/api/kamar/:id/penghuni` | Mengubah nama, nomor HP, dan tanggal bayar penghuni |
+| GET | `/api/pembayaran?periode=YYYY-MM` | Tagihan & pembayaran satu bulan |
+| POST | `/api/pembayaran` | Mencatat pembayaran |
+| DELETE | `/api/pembayaran/:id` | Membatalkan catatan pembayaran |
+| GET | `/api/export/excel` | Mengunduh semua data dalam file Excel |
+| GET | `/api/auth/me` | Profil admin yang sedang login |
+| PUT | `/api/auth/profil` | Mengubah nama atau password admin |
 
 ## Penyimpanan Data
 
@@ -214,4 +309,4 @@ Untuk penggunaan produksi, bagian penyimpanan dapat diganti dengan MySQL atau Po
 
 ## Lingkup Sistem
 
-Sistem tidak mencakup login penyewa, pembayaran atau payment gateway, pengingat jatuh tempo tagihan, rating atau ulasan, keluhan penghuni, serta aplikasi mobile native.
+Sistem tidak mencakup login penyewa, pembayaran online atau payment gateway (pembayaran hanya dicatat manual oleh admin), pengiriman WhatsApp otomatis (admin menekan tombol untuk mengirim), rating atau ulasan, keluhan penghuni, serta aplikasi mobile native.

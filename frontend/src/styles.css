@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 /* Dasar */
 * { box-sizing:border-box; }
@@ -151,3 +150,22 @@ button { cursor:pointer; }
     transition-duration:.01ms !important;
   }
 }
+
+/* ===== Tema terang (selaras dengan website) ===== */
+.auth-page {
+  --auth-bg:#fbf6f3; --auth-card:rgba(255,255,255,.88); --auth-line:#efe0d8; --auth-text:#2b1517; --auth-muted:#8a7270;
+  background:radial-gradient(1100px 700px at 50% 0%, #fbe6e3 0%, #fbf6f3 62%);
+}
+.auth-glow span:nth-child(1) { background:#F3B6B666; }
+.auth-glow span:nth-child(2) { background:#E29B6A40; }
+.auth-card { box-shadow:0 30px 80px rgba(142,21,35,.16), inset 0 1px 0 #ffffff; }
+.auth-card h1 { color:#8E1523; }
+.auth-error { background:#fde8e6; border-color:#f4c3bd; color:#b42318; }
+.auth-field input { background:#fbf6f3; }
+.auth-field input::placeholder { color:#ad9995; }
+.auth-field input:focus { border-color:#8E1523; background:#fff; box-shadow:0 0 0 4px rgba(142,21,35,.12); }
+.auth-eye:hover { background:#fbe4e2; }
+.auth-submit { border-radius:999px; background:linear-gradient(135deg,#a3202f,#8E1523); box-shadow:0 12px 30px rgba(142,21,35,.3), inset 0 1px 0 #ffffff30; }
+.auth-submit:hover:not(:disabled) { box-shadow:0 16px 36px rgba(142,21,35,.38), inset 0 1px 0 #ffffff30; }
+.phase-success .auth-status { color:#a3202f; }
+.auth-foot small { color:#9a8582; }

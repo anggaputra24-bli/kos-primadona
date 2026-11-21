@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import './styles.css';
 import './site.css';
+import './lodge.css';
 
 const api = async (url, options = {}) => {
   const token = localStorage.getItem('kp_token');
@@ -16,6 +17,58 @@ const api = async (url, options = {}) => {
 const rupiah = n => new Intl.NumberFormat('id-ID').format(n);
 const PHOTO_FALLBACK = 'https://placehold.co/900x675/ece7e0/8a8178?text=Foto+Kamar';
 
+// ===== Animasi =====
+const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+const prefersReducedMotion = () => {
+  try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return true; }
+};
+
+// Angka yang menghitung naik/turun dengan halus setiap kali nilainya berubah.
+function CountUp({ value, format = n => n, duration = 900 }) {
+  const target = Number(value) || 0;
+  const [shown, setShown] = useState(0);
+  const current = React.useRef(0);
+  useEffect(() => {
+    const start = current.current;
+    if (start === target || prefersReducedMotion()) { current.current = target; setShown(target); return; }
+    const t0 = performance.now();
+    let frame;
+    const tick = now => {
+      const t = Math.min(1, (now - t0) / duration);
+      current.current = Math.round(start + (target - start) * easeOutCubic(t));
+      setShown(current.current);
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target]);
+  return format(shown);
+}
+const rp = n => `Rp${rupiah(n)}`;
+
+// Elemen bertanda data-reveal muncul halus (naik + memudar) saat masuk ke layar.
+// Elemen yang baru ditambahkan (mis. setelah filter berubah) ikut dipantau.
+function ScrollReveal() {
+  useEffect(() => {
+    if (!('IntersectionObserver' in window) || prefersReducedMotion()) return;
+    const root = document.documentElement;
+    root.classList.add('reveal-ready');
+    const io = new IntersectionObserver(entries => entries.forEach(entry => {
+      if (entry.isIntersecting) { entry.target.classList.add('is-in'); io.unobserve(entry.target); }
+    }), { rootMargin: '0px 0px -6% 0px', threshold: 0.05 });
+    const watch = node => {
+      if (node.nodeType !== 1) return;
+      if (node.matches('[data-reveal]:not(.is-in)')) io.observe(node);
+      node.querySelectorAll('[data-reveal]:not(.is-in)').forEach(n => io.observe(n));
+    };
+    watch(document.body);
+    const mo = new MutationObserver(list => list.forEach(m => m.addedNodes.forEach(watch)));
+    mo.observe(document.body, { childList: true, subtree: true });
+    return () => { io.disconnect(); mo.disconnect(); root.classList.remove('reveal-ready'); };
+  }, []);
+  return null;
+}
+
 const Icon = {
   pin: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z" /><circle cx="12" cy="9.5" r="2.5" /></svg>,
   check: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>,
@@ -23,6 +76,13 @@ const Icon = {
   back: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>,
   close: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>,
   chat: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19.6Z" /></svg>,
+  home: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5.5 9.5V20h13V9.5M10 20v-5h4v5" /></svg>,
+  tag: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8L3 12Z" /><circle cx="7.5" cy="8.5" r="1.5" /></svg>,
+  sofa: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11V8a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v3" /><path d="M2 13a2 2 0 0 1 4 0v2h12v-2a2 2 0 0 1 4 0v5H2v-5ZM5 18v2M19 18v2" /></svg>,
+  cap: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m2 9 10-5 10 5-10 5L2 9Z" /><path d="M6 11v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5M22 9v5" /></svg>,
+  key: <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4" /><path d="m11 12 9-9M17 6l3 3M14 9l2 2" /></svg>,
+  bed: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18V6M3 14h18v4M21 14v-3a3 3 0 0 0-3-3h-7v6M7 11.5h.01" /></svg>,
+  leaf: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c0-8 6-14 15-14 0 9-6 15-14 15" /><path d="M5 19 14 10" /></svg>,
 };
 
 function Header() {
@@ -31,17 +91,20 @@ function Header() {
       <div className="site-wrap site-header-row">
         <Link className="site-logo" to="/">
           <img src="/primadona-mark.svg" alt="" />
-          <span>Kos Primadona</span>
+          <span>Kos Primadona<small>Kos bulanan di Jember</small></span>
         </Link>
         <nav className="site-nav">
           <a href="/#kamar">Kamar</a>
           <a href="/#lokasi">Lokasi</a>
           <a href="/#cara-sewa">Cara Sewa</a>
+          <a className="site-nav-cta" href="/#kamar">Cari kamar</a>
         </nav>
       </div>
     </header>
   );
 }
+
+const HERO_PHOTO = 'https://images.unsplash.com/photo-1449844908441-8829872d2607?auto=format&fit=crop&w=1800&q=70';
 
 function Home() {
   const [locations, setLocations] = useState([]);
@@ -61,7 +124,7 @@ function Home() {
   useEffect(() => {
     Promise.all([api('/api/lokasi'), api('/api/kamar')]).then(([l, r]) => {
       setLocations(l); setRooms(r); setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, []);
 
   const visible = rooms.filter(r => r.lokasi_id === locationId &&
@@ -72,39 +135,47 @@ function Home() {
   const minPrice = rooms.length ? Math.min(...rooms.map(r => r.harga_sewa)) : 0;
   const toggleCompare = r => setCompare(prev => prev.some(x => x.id === r.id) ? prev.filter(x => x.id !== r.id) : prev.length < 3 ? [...prev, r] : prev);
   const mainWa = locations[0]?.nomor_whatsapp;
+  const freeRoom = available[0] || rooms[0];
 
   return (
-    <div className="site">
+    <div className="site lodge">
       <Header />
-      <main>
-        <section className="site-wrap hero2">
-          <div className="hero2-copy">
-            <p className="hero2-place">Jember, Jawa Timur</p>
-            <h1>Kamar kos yang tenang, dekat kampus, dan siap ditempati.</h1>
-            <p className="hero2-lead">Kos Primadona mengelola dua bangunan di Jember dengan kamar berperabot, harga bulanan yang jelas, dan pengelola yang bisa dihubungi langsung.</p>
-            <div className="hero2-actions">
-              <a className="btn btn-dark" href="#kamar">Lihat kamar {Icon.arrow}</a>
-              {mainWa && <a className="btn btn-line" href={`https://wa.me/${mainWa}`} target="_blank" rel="noreferrer">Tanya pengelola</a>}
-            </div>
-            <dl className="hero2-facts">
-              <div><dt>Harga mulai</dt><dd>{minPrice ? `Rp${rupiah(minPrice)}` : '–'}<small>/bulan</small></dd></div>
-              <div><dt>Kamar kosong</dt><dd>{loading ? '–' : available.length}<small> dari {rooms.length}</small></dd></div>
-              <div><dt>Lokasi</dt><dd>{locations.length || '–'}<small> bangunan</small></dd></div>
-            </dl>
+      <section className="lx-hero">
+        <div className="lx-hero-media" aria-hidden="true">
+          <img src={HERO_PHOTO} alt="" onLoad={e => e.currentTarget.classList.add('is-loaded')} />
+        </div>
+        <div className="site-wrap lx-hero-copy">
+          <p className="lx-eyebrow">Kos bulanan · Jember, Jawa Timur</p>
+          <h1 className="lx-title">Kamar Nyaman.<span>Hidup Lebih <em>Tenang</em>.</span></h1>
+          <p className="lx-lead">Dua bangunan di Jember dengan kamar berperabot, harga bulanan yang jelas, dan pengelola yang bisa dihubungi langsung.</p>
+          <a className="lx-btn-accent" href="#kamar">Lihat kamar {Icon.arrow}</a>
+        </div>
+        <div className="site-wrap">
+          <div className="lx-bar">
+            <div>{Icon.pin}<p><small>Lokasi</small><b>Jember · {locations.length || '–'} bangunan</b></p></div>
+            <div>{Icon.home}<p><small>Jenis sewa</small><b>Kos bulanan</b></p></div>
+            <div>{Icon.tag}<p><small>Harga mulai</small><b>{minPrice ? `Rp${rupiah(minPrice)}` : '–'}/bulan</b></p></div>
+            <div>{Icon.key}<p><small>Kamar kosong</small><b>{loading ? '–' : <CountUp value={available.length} />} dari {rooms.length || '–'}</b></p></div>
+            <a className="lx-bar-btn" href="#kamar">Cari kamar {Icon.arrow}</a>
           </div>
-          <figure className="hero2-photo">
-            <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=85" alt="Interior kamar Kos Primadona" />
-          </figure>
-        </section>
+        </div>
+      </section>
+      <section className="site-wrap lx-perks" aria-label="Keunggulan">
+        <div data-reveal>{Icon.sofa}<p><b>Kamar berperabot</b><small>Kasur, lemari, dan fasilitas sesuai tiap kamar.</small></p></div>
+        <div data-reveal style={{ '--i': 1 }}>{Icon.tag}<p><b>Harga jelas</b><small>Harga bulanan tertera di setiap kamar.</small></p></div>
+        <div data-reveal style={{ '--i': 2 }}>{Icon.cap}<p><b>Dekat kampus</b><small>Dua lokasi strategis di Jember.</small></p></div>
+        <div data-reveal style={{ '--i': 3 }}>{Icon.chat}<p><b>Langsung ke pengelola</b><small>Tanya dan atur survei lewat WhatsApp.</small></p></div>
+      </section>
+      <main>
 
         <section className="site-section" id="kamar">
           <div className="site-wrap">
-            <div className="sec-head">
-              <h2>Daftar kamar</h2>
+            <div className="sec-head" data-reveal>
+              <h2>Daftar kamar <span className="sec-leaf" aria-hidden="true">{Icon.leaf}</span></h2>
               <p>Pilih lokasi, lalu saring berdasarkan ketersediaan, harga, atau fasilitas.</p>
             </div>
 
-            <div className="loc-tabs" role="tablist">
+            <div className="loc-tabs" role="tablist" data-reveal>
               {locations.map(l => {
                 const count = rooms.filter(r => r.lokasi_id === l.id).length;
                 return (
@@ -115,7 +186,7 @@ function Home() {
               })}
             </div>
 
-            <div className="toolbar">
+            <div className="toolbar" data-reveal style={{ '--i': 1 }}>
               <div className="seg">
                 {[['semua','Semua'],['tersedia','Tersedia'],['sudah_dipakai','Terisi']].map(([value,label]) =>
                   <button key={value} className={status === value ? 'is-active' : ''} onClick={() => setStatus(value)}>{label}</button>
@@ -136,7 +207,7 @@ function Home() {
               <div className="room-list">{[1,2,3].map(x => <div className="rcard is-loading" key={x}><div className="rcard-photo" /><div className="sk" /><div className="sk short" /></div>)}</div>
             ) : (
               <div className="room-list">
-                {visible.map(room => <RoomCard key={room.id} room={room} selected={compare.some(x => x.id === room.id)} onCompare={() => toggleCompare(room)} />)}
+                {visible.map((room, i) => <RoomCard key={room.id} index={i} room={room} selected={compare.some(x => x.id === room.id)} onCompare={() => toggleCompare(room)} />)}
               </div>
             )}
             {!loading && visible.length === 0 && <p className="empty-note">Tidak ada kamar yang cocok dengan filter ini. Coba ubah pilihan harga atau fasilitas.</p>}
@@ -145,15 +216,15 @@ function Home() {
 
         <section className="site-section alt" id="lokasi">
           <div className="site-wrap">
-            <div className="sec-head">
-              <h2>Lokasi</h2>
+            <div className="sec-head" data-reveal>
+              <h2>Lokasi <span className="sec-leaf" aria-hidden="true">{Icon.leaf}</span></h2>
               <p>Dua bangunan, masing-masing dengan pengelola dan nomor WhatsApp sendiri.</p>
             </div>
             <div className="loc-grid">
-              {locations.map(l => {
+              {locations.map((l, i) => {
                 const free = rooms.filter(r => r.lokasi_id === l.id && r.status === 'tersedia').length;
                 return (
-                  <article className="loc-item" key={l.id}>
+                  <article className="loc-item" key={l.id} data-reveal style={{ '--i': i }}>
                     <div className="loc-map"><iframe src={l.peta_embed} title={`Peta ${l.nama_lokasi}`} loading="lazy" /></div>
                     <div className="loc-body">
                       <h3>{l.nama_lokasi}</h3>
@@ -172,17 +243,40 @@ function Home() {
         </section>
 
         <section className="site-section" id="cara-sewa">
-          <div className="site-wrap steps-wrap">
-            <div className="sec-head">
-              <h2>Cara menyewa</h2>
-              <p>Tanpa formulir online. Semua dibicarakan langsung dengan pengelola.</p>
+          <div className="site-wrap">
+            <div className="lx-guide" data-reveal>
+              <div className="lx-guide-copy">
+                <p className="lx-eyebrow">Butuh panduan?</p>
+                <h2>Cara menyewa</h2>
+                <p>Tanpa formulir online. Semua dibicarakan langsung dengan pengelola.</p>
+                <a className="lx-btn-dark" href="#kamar">Lihat daftar kamar {Icon.arrow}</a>
+              </div>
+              <ol className="steps">
+                <li data-reveal><span>01</span><h3>Pilih kamar</h3><p>Lihat foto, luas, fasilitas, dan harga tiap kamar di halaman detail.</p></li>
+                <li data-reveal style={{ '--i': 1 }}><span>02</span><h3>Hubungi pengelola</h3><p>Tekan tombol WhatsApp untuk menanyakan ketersediaan dan jadwal survei.</p></li>
+                <li data-reveal style={{ '--i': 2 }}><span>03</span><h3>Survei dan pindah</h3><p>Datang ke lokasi, cek kamar, sepakati pembayaran, lalu kamar siap ditempati.</p></li>
+              </ol>
             </div>
-            <ol className="steps">
-              <li><span>01</span><h3>Pilih kamar</h3><p>Lihat foto, luas, fasilitas, dan harga tiap kamar di halaman detail.</p></li>
-              <li><span>02</span><h3>Hubungi pengelola</h3><p>Tekan tombol WhatsApp untuk menanyakan ketersediaan dan jadwal survei.</p></li>
-              <li><span>03</span><h3>Survei dan pindah</h3><p>Datang ke lokasi, cek kamar, sepakati pembayaran, lalu kamar siap ditempati.</p></li>
-            </ol>
           </div>
+        </section>
+
+        <section className="site-wrap lx-cta-wrap" aria-label="Hubungi pengelola">
+          <div className="lx-cta" data-reveal>
+            <div className="lx-cta-media" aria-hidden="true">{freeRoom && <img src={freeRoom.foto} alt="" loading="lazy" onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />}</div>
+            <div className="lx-cta-copy">
+              <p className="lx-eyebrow">Siap pindah?</p>
+              <h2>Kamar kosong sudah menunggu.</h2>
+              <p>{loading ? 'Memuat ketersediaan…' : `${available.length} kamar siap ditempati di ${locations.length} lokasi. Tanyakan langsung ke pengelola.`}</p>
+              {mainWa && <a className="lx-btn-accent" href={`https://wa.me/${mainWa}`} target="_blank" rel="noreferrer">Tanya pengelola {Icon.arrow}</a>}
+            </div>
+          </div>
+        </section>
+
+        <section className="site-wrap lx-stats" aria-label="Ringkasan">
+          <div>{Icon.bed}<p><b>{loading ? '–' : <CountUp value={rooms.length} />}</b><small>Total kamar</small></p></div>
+          <div>{Icon.key}<p><b>{loading ? '–' : <CountUp value={available.length} />}</b><small>Kamar kosong</small></p></div>
+          <div>{Icon.pin}<p><b>{loading ? '–' : <CountUp value={locations.length} />}</b><small>Lokasi</small></p></div>
+          <div>{Icon.tag}<p><b>{minPrice ? `Rp${rupiah(minPrice)}` : '–'}</b><small>Harga mulai / bulan</small></p></div>
         </section>
       </main>
       {compare.length > 0 && <Comparison rooms={compare} remove={toggleCompare} close={() => setCompare([])} />}
@@ -191,21 +285,19 @@ function Home() {
   );
 }
 
-function RoomCard({ room, selected, onCompare }) {
+function RoomCard({ room, selected, onCompare, index = 0 }) {
   const free = room.status === 'tersedia';
   return (
-    <article className="rcard">
-      <Link to={`/kamar/${room.id}`} className="rcard-photo">
-        <img src={room.foto} alt={room.nama_kamar} loading="lazy" onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />
+    <article className="rcard" data-reveal style={{ '--i': index % 3 }}>
+      <Link to={`/kamar/${room.id}`} className="rcard-photo" tabIndex={-1} aria-hidden="true">
+        <img src={room.foto} alt="" loading="lazy" onLoad={e => e.currentTarget.classList.add('is-loaded')} onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />
       </Link>
-      <div className="rcard-top">
+      <span className={`avail ${free ? 'yes' : 'no'}`}>{free ? 'Tersedia' : 'Terisi'}</span>
+      <label className="cmp"><input type="checkbox" checked={selected} onChange={onCompare} />Bandingkan</label>
+      <div className="rcard-info">
         <h3><Link to={`/kamar/${room.id}`}>{room.nama_kamar}</Link></h3>
-        <span className={`avail ${free ? 'yes' : 'no'}`}>{free ? 'Tersedia' : 'Terisi'}</span>
-      </div>
-      <p className="rcard-meta">{room.luas} · {room.fasilitas.slice(0, 3).join(', ')}{room.fasilitas.length > 3 ? ` +${room.fasilitas.length - 3}` : ''}</p>
-      <div className="rcard-bottom">
-        <p className="rcard-price">Rp{rupiah(room.harga_sewa)}<small> /bulan</small></p>
-        <label className="cmp"><input type="checkbox" checked={selected} onChange={onCompare} />Bandingkan</label>
+        <p className="rcard-meta">{room.luas} · {room.fasilitas.slice(0, 3).join(', ')}{room.fasilitas.length > 3 ? ` +${room.fasilitas.length - 3}` : ''}</p>
+        <p className="rcard-price">Rp{rupiah(room.harga_sewa)}<small>/bulan</small></p>
       </div>
     </article>
   );
@@ -236,19 +328,19 @@ function Detail() {
   const { id } = useParams();
   const [room, setRoom] = useState(null);
   const [photoIndex, setPhotoIndex] = useState(0);
-  useEffect(() => { api(`/api/kamar/${id}`).then(setRoom); window.scrollTo(0, 0); }, [id]);
-  if (!room) return <div className="site"><Header /><p className="site-wrap empty-note">Memuat kamar…</p></div>;
+  useEffect(() => { api(`/api/kamar/${id}`).then(setRoom).catch(() => {}); window.scrollTo({ top: 0, behavior: 'instant' }); }, [id]);
+  if (!room) return <div className="site lodge"><Header /><p className="site-wrap empty-note">Memuat kamar…</p></div>;
   const text = encodeURIComponent(`Halo, saya tertarik dengan ${room.nama_kamar} di ${room.lokasi.nama_lokasi}. Apakah masih tersedia?`);
   const photos = room.photos && room.photos.length ? room.photos : [room.foto];
   const free = room.status === 'tersedia';
 
   return (
-    <div className="site">
+    <div className="site lodge">
       <Header />
       <main className="site-wrap dpage">
         <nav className="crumbs" aria-label="Breadcrumb"><Link to="/">Beranda</Link><span>/</span><Link to="/#kamar">Kamar</Link><span>/</span><b>{room.nama_kamar}</b></nav>
 
-        <div className="dhead">
+        <div className="dhead" data-reveal>
           <div>
             <h1>{room.nama_kamar}</h1>
             <p className="loc-addr">{Icon.pin}{room.lokasi.nama_lokasi} · {room.lokasi.alamat}</p>
@@ -258,8 +350,8 @@ function Detail() {
 
         <div className="dgrid">
           <div className="dmain">
-            <div className="dgallery">
-              <img src={photos[photoIndex]} alt={`${room.nama_kamar}, foto ${photoIndex + 1}`} onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />
+            <div className="dgallery" data-reveal>
+              <img key={photoIndex} className="dg-img" src={photos[photoIndex]} alt={`${room.nama_kamar}, foto ${photoIndex + 1}`} onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />
               {photos.length > 1 && <>
                 <button className="dg-nav prev" aria-label="Foto sebelumnya" onClick={() => setPhotoIndex((photoIndex - 1 + photos.length) % photos.length)}>{Icon.back}</button>
                 <button className="dg-nav next" aria-label="Foto berikutnya" onClick={() => setPhotoIndex((photoIndex + 1) % photos.length)}>{Icon.arrow}</button>
@@ -268,15 +360,15 @@ function Detail() {
             </div>
             {photos.length > 1 && <div className="dthumbs">{photos.map((p, i) => <button key={i} className={i === photoIndex ? 'is-active' : ''} onClick={() => setPhotoIndex(i)}><img src={p} alt="" /></button>)}</div>}
 
-            <section className="dsec">
+            <section className="dsec" data-reveal>
               <h2>Fasilitas kamar</h2>
               <ul className="flist">{room.fasilitas.map(f => <li key={f}>{Icon.check}{f}</li>)}</ul>
             </section>
-            <section className="dsec">
+            <section className="dsec" data-reveal>
               <h2>Peraturan kos</h2>
               <ol className="rlist">{room.lokasi.peraturan.map((p, i) => <li key={i}>{p}</li>)}</ol>
             </section>
-            <section className="dsec">
+            <section className="dsec" data-reveal>
               <h2>Lokasi dan sekitarnya</h2>
               <p>{room.lokasi.info_lingkungan}</p>
               <div className="dmap"><iframe src={room.lokasi.peta_embed} title="Peta lokasi" loading="lazy" /></div>
@@ -284,7 +376,7 @@ function Detail() {
           </div>
 
           <aside className="dside">
-            <div className="dbox">
+            <div className="dbox" data-reveal style={{ '--i': 1 }}>
               <p className="dprice">Rp{rupiah(room.harga_sewa)}<small> /bulan</small></p>
               <dl className="dspecs">
                 <div><dt>Luas</dt><dd>{room.luas}</dd></div>
@@ -468,6 +560,11 @@ function AdminAccessShortcut() {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showCode, setShowCode] = useState(false);
+  // Setiap kali jendela dibuka, kode kembali disembunyikan.
+  useEffect(() => { if (isOpen) setShowCode(false); }, [isOpen]);
+  // Waktu jendela dibuka, dicatat langsung (bukan lewat state) agar ketukan sisa tidak menutupnya.
+  const openedAt = React.useRef(0);
 
   useEffect(() => {
     const onKeyDown = event => {
@@ -476,6 +573,7 @@ function AdminAccessShortcut() {
         (target.isContentEditable || target.matches('input, textarea, select'));
       if (event.ctrlKey && !event.altKey && event.key.toLowerCase() === 'z' && !isEditing) {
         event.preventDefault();
+        openedAt.current = Date.now();
         setCode('');
         setError('');
         setIsOpen(true);
@@ -483,15 +581,36 @@ function AdminAccessShortcut() {
       if (event.key === 'Escape') setIsOpen(false);
     };
     const onOpenRequest = event => {
+      openedAt.current = Date.now();
       setCode('');
       setError(event.detail || '');
       setIsOpen(true);
     };
+    // Pintu masuk untuk HP/tablet (tanpa tombol Ctrl): ketuk logo di header 5 kali,
+    // masing-masing ketukan berjarak kurang dari 1 detik.
+    let taps = 0;
+    let lastTap = 0;
+    const onLogoTap = event => {
+      if (!(event.target instanceof Element) || !event.target.closest('.site-header .site-logo')) return;
+      const now = Date.now();
+      taps = now - lastTap < 1000 ? taps + 1 : 1;
+      lastTap = now;
+      if (taps >= 5) {
+        taps = 0;
+        event.preventDefault();
+        openedAt.current = Date.now();
+        setCode('');
+        setError('');
+        setIsOpen(true);
+      }
+    };
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener(OPEN_ACCESS_EVENT, onOpenRequest);
+    document.addEventListener('click', onLogoTap, true);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener(OPEN_ACCESS_EVENT, onOpenRequest);
+      document.removeEventListener('click', onLogoTap, true);
     };
   }, []);
 
@@ -519,7 +638,8 @@ function AdminAccessShortcut() {
   if (!isOpen) return null;
   return (
     <div className="access-overlay" onMouseDown={event => {
-      if (event.target === event.currentTarget) setIsOpen(false);
+      // Abaikan ketukan sisa (mis. ketukan logo ke-6) yang terjadi tepat setelah jendela terbuka.
+      if (event.target === event.currentTarget && Date.now() - openedAt.current > 600) setIsOpen(false);
     }}>
       <form className="access-card" onSubmit={submit}>
         <button className="access-close" type="button" aria-label="Tutup" onClick={() => setIsOpen(false)}>
@@ -529,19 +649,40 @@ function AdminAccessShortcut() {
         <p className="access-sub">Masukkan kode rahasia untuk membuka halaman login admin.</p>
         {error && <div className="access-error" role="alert">{error}</div>}
         <label htmlFor="admin-access-code">Kode rahasia</label>
-        <input
-          id="admin-access-code"
-          type="password"
-          autoComplete="off"
-          autoFocus
-          value={code}
-          onChange={event => setCode(event.target.value)}
-          required
-        />
+        <div className="access-field">
+          <input
+            id="admin-access-code"
+            type={showCode ? 'text' : 'password'}
+            autoComplete="off"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+            autoFocus
+            value={code}
+            onChange={event => setCode(event.target.value)}
+            required
+          />
+          <button
+            type="button"
+            className="access-eye"
+            aria-label={showCode ? 'Sembunyikan kode' : 'Tampilkan kode'}
+            aria-pressed={showCode}
+            title={showCode ? 'Sembunyikan kode' : 'Tampilkan kode'}
+            onMouseDown={event => event.preventDefault()}
+            onClick={() => setShowCode(v => !v)}
+          >
+            {showCode
+              ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18" /><path d="M10.6 5.1A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.7 8.4 2 12 2 12s3.6 7 10 7a9.6 9.6 0 0 0 5.4-1.6" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg>
+              : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg>}
+          </button>
+        </div>
         <button className="access-submit" type="submit" disabled={submitting}>
           {submitting ? 'Memeriksa…' : 'Lanjutkan'}
         </button>
-        <p className="access-hint">Tekan Esc untuk menutup.</p>
+        <p className="access-hint">
+          <span className="hint-key">Tekan Esc untuk menutup.</span>
+          <span className="hint-touch">Ketuk di luar kotak untuk menutup.</span>
+        </p>
       </form>
     </div>
   );
@@ -558,6 +699,7 @@ const AdIcon = {
   undo: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 0 12h-3" /></svg>,
   prev: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>,
   next: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>,
+  menu: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" /></svg>,
   shield: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z" /><path d="M12 8v4M12 15.5h.01" /></svg>,
   riwayat: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5M12 8v4l3 2" /></svg>,
   profil: <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>,
@@ -583,6 +725,27 @@ const ADMIN_TABS = [
 function Admin() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('dashboard');
+  // Menu samping berupa laci: tersembunyi di awal, meluncur keluar saat tombol menu ditekan.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuBtnRef = React.useRef(null);
+  const drawerRef = React.useRef(null);
+  const openedByKeyboard = React.useRef(false);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = e => { if (e.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    // Pengguna keyboard: fokus pindah ke menu aktif, dan kembali ke tombol menu saat ditutup.
+    const byKeyboard = openedByKeyboard.current;
+    const t = byKeyboard && setTimeout(() => drawerRef.current?.querySelector('.adm-nav .is-active')?.focus(), 80);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+      clearTimeout(t);
+      if (byKeyboard) menuBtnRef.current?.focus({ preventScroll: true });
+    };
+  }, [menuOpen]);
+  const chooseTab = key => { setTab(key); setMenuOpen(false); };
   const [locations, setLocations] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [history, setHistory] = useState([]);
@@ -660,13 +823,17 @@ function Admin() {
   const today = new Date().toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
   return (
-    <div className="site adm">
-      <aside className="adm-side">
-        <Link className="site-logo" to="/"><img src="/primadona-mark.svg" alt="" /><span>Kos Primadona</span></Link>
+    <div className={`site lodge adm${menuOpen ? ' menu-open' : ''}`}>
+      <div className={`adm-backdrop${menuOpen ? ' is-open' : ''}`} onClick={() => setMenuOpen(false)} aria-hidden="true" />
+      <aside id="adm-drawer" ref={drawerRef} className={`adm-side${menuOpen ? ' is-open' : ''}`} aria-label="Menu pengelola" inert={!menuOpen}>
+        <div className="adm-side-top">
+          <Link className="site-logo" to="/"><img src="/primadona-mark.svg" alt="" /><span>Kos Primadona</span></Link>
+          <button className="adm-icon adm-drawer-close" onClick={() => setMenuOpen(false)} aria-label="Tutup menu">{AdIcon.close}</button>
+        </div>
         <p className="adm-side-label">Panel pengelola</p>
         <nav className="adm-nav">
-          {ADMIN_TABS.map(([key, label]) => (
-            <button key={key} className={tab === key ? 'is-active' : ''} onClick={() => setTab(key)}>
+          {ADMIN_TABS.map(([key, label], i) => (
+            <button key={key} style={{ '--i': i }} className={tab === key ? 'is-active' : ''} onClick={() => chooseTab(key)}>
               {AdIcon[key]}<span>{label}</span>
               {key === 'pembayaran' && needsAttention && <i className="adm-dot" aria-label="Ada tagihan yang perlu ditindaklanjuti" />}
               {key === 'profil' && me?.default_password && <i className="adm-dot" aria-label="Password bawaan belum diganti" />}
@@ -674,16 +841,22 @@ function Admin() {
           ))}
         </nav>
         <div className="adm-side-foot">
-          <Link to="/" target="_blank">{AdIcon.ext}<span>Lihat website</span></Link>
-          <button onClick={logout}>{AdIcon.out}<span>Keluar</span></button>
+          <Link to="/" target="_blank" style={{ '--i': ADMIN_TABS.length }}>{AdIcon.ext}<span>Lihat website</span></Link>
+          <button onClick={logout} style={{ '--i': ADMIN_TABS.length + 1 }}>{AdIcon.out}<span>Keluar</span></button>
         </div>
       </aside>
 
       <main className="adm-main">
         <header className="adm-head">
-          <div>
-            <p>{today}</p>
-            <h1>{title}</h1>
+          <div className="adm-head-title">
+            <button ref={menuBtnRef} className="adm-menu-btn" onClick={e => { openedByKeyboard.current = e.detail === 0; setMenuOpen(true); }} aria-label="Buka menu" aria-expanded={menuOpen} aria-controls="adm-drawer">
+              {AdIcon.menu}
+              {(needsAttention || me?.default_password) && <i className="adm-dot" aria-hidden="true" />}
+            </button>
+            <div>
+              <p>{today}</p>
+              <h1>{title}</h1>
+            </div>
           </div>
           <div className="adm-head-actions">
             <button className="btn btn-line" onClick={downloadExcel} disabled={exporting}>{AdIcon.download}{exporting ? 'Menyiapkan…' : 'Unduh Excel'}</button>
@@ -699,12 +872,13 @@ function Admin() {
           </div>
         )}
 
+        <div className="adm-view" key={tab}>
         {tab === 'dashboard' && <>
           <dl className="adm-stats">
-            <div><dt>Total kamar</dt><dd>{rooms.length}</dd><small>di {locations.length} lokasi</small></div>
-            <div><dt>Tersedia</dt><dd className="ok">{rooms.length - occupied.length}</dd><small>siap disewakan</small></div>
-            <div><dt>Terisi</dt><dd>{occupied.length}</dd><small>{rooms.length ? Math.round(occupied.length / rooms.length * 100) : 0}% tingkat hunian</small></div>
-            <div><dt>Diterima bulan ini</dt><dd>Rp{rupiah(received)}</dd><small>{billed ? `dari Rp${rupiah(billed)} · ${unpaid ? `${unpaid} belum bayar` : 'semua lunas'}` : 'belum ada tagihan'}</small></div>
+            <div><dt>Total kamar</dt><dd><CountUp value={rooms.length} /></dd><small>di {locations.length} lokasi</small></div>
+            <div><dt>Tersedia</dt><dd className="ok"><CountUp value={rooms.length - occupied.length} /></dd><small>siap disewakan</small></div>
+            <div><dt>Terisi</dt><dd><CountUp value={occupied.length} /></dd><small>{rooms.length ? Math.round(occupied.length / rooms.length * 100) : 0}% tingkat hunian</small></div>
+            <div><dt>Diterima bulan ini</dt><dd><CountUp value={received} format={rp} /></dd><small>{billed ? `dari Rp${rupiah(billed)} · ${unpaid ? `${unpaid} belum bayar` : 'semua lunas'}` : 'belum ada tagihan'}</small></div>
           </dl>
           <div className="adm-cols">
             <section className="adm-panel">
@@ -720,7 +894,7 @@ function Admin() {
         </>}
 
         {tab === 'kamar' && <>
-          {editing && <section className="adm-panel">
+          {editing && <section className="adm-panel adm-enter">
             <div className="adm-panel-head"><h2>{editing.id ? `Ubah ${editing.nama_kamar}` : 'Kamar baru'}</h2></div>
             <form className="adm-form" onSubmit={submitRoom} key={editing.id || 'new'}>
               <label>Nama kamar<input name="nama_kamar" defaultValue={editing.nama_kamar||''} required /></label>
@@ -752,6 +926,7 @@ function Admin() {
             })}</ol>}
         </section>}
         {tab === 'profil' && me && <ProfileAdmin me={me} setMe={setMe} setMessage={setMessage} />}
+        </div>
       </main>
     </div>
   );
@@ -845,10 +1020,10 @@ function PaymentsAdmin({ setMessage, onChange, editRoom }) {
       </div>
 
       <dl className="adm-stats">
-        <div><dt>Tagihan {monthLabel(periode).split(' ')[0]}</dt><dd>Rp{rupiah(s?.ditagih || 0)}</dd><small>{data ? `total sewa ${data.tagihan.length} penghuni` : '…'}</small></div>
-        <div><dt>Sudah diterima</dt><dd className="ok">Rp{rupiah(s?.diterima || 0)}</dd><small>{s ? `${s.lunas} lunas · ${s.ditagih ? Math.round(Math.min(s.diterima, s.ditagih) / s.ditagih * 100) : 0}% terkumpul` : '…'}</small></div>
-        <div><dt>Sisa tagihan</dt><dd className={s && s.belum === 0 && s.ditagih ? 'ok' : ''}>Rp{rupiah(Math.max(0, (s?.ditagih || 0) - (s?.diterima || 0)))}</dd><small>{s ? (s.belum ? `${s.belum} penghuni belum bayar` : s.ditagih ? 'semua sudah lunas' : '–') : '…'}</small></div>
-        <div><dt>Terlambat</dt><dd className={s?.terlambat ? 'late' : ''}>{s?.terlambat ?? 0}</dd><small>lewat jatuh tempo</small></div>
+        <div><dt>Tagihan {monthLabel(periode).split(' ')[0]}</dt><dd><CountUp value={s?.ditagih || 0} format={rp} /></dd><small>{data ? `total sewa ${data.tagihan.length} penghuni` : '…'}</small></div>
+        <div><dt>Sudah diterima</dt><dd className="ok"><CountUp value={s?.diterima || 0} format={rp} /></dd><small>{s ? `${s.lunas} lunas · ${s.ditagih ? Math.round(Math.min(s.diterima, s.ditagih) / s.ditagih * 100) : 0}% terkumpul` : '…'}</small></div>
+        <div><dt>Sisa tagihan</dt><dd className={s && s.belum === 0 && s.ditagih ? 'ok' : ''}><CountUp value={Math.max(0, (s?.ditagih || 0) - (s?.diterima || 0))} format={rp} /></dd><small>{s ? (s.belum ? `${s.belum} penghuni belum bayar` : s.ditagih ? 'semua sudah lunas' : '–') : '…'}</small></div>
+        <div><dt>Terlambat</dt><dd className={s?.terlambat ? 'late' : ''}><CountUp value={s?.terlambat ?? 0} /></dd><small>lewat jatuh tempo</small></div>
       </dl>
 
       <section className="adm-panel">
@@ -1068,6 +1243,7 @@ function Footer() {
 
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>
+    <ScrollReveal />
     <AdminAccessShortcut />
     <Routes>
       <Route path="/" element={<Home />} />

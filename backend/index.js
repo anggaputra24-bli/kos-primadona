@@ -20,8 +20,9 @@ if (!ADMIN_ACCESS_CODE || ADMIN_ACCESS_CODE.length < 16) {
   throw new Error('ADMIN_ACCESS_CODE wajib diatur di file .env dan minimal 16 karakter');
 }
 const DEFAULT_PASSWORD = 'admin123';
-const dataFile = path.join(__dirname, 'data.json');
-const uploadsDir = path.join(__dirname, 'uploads');
+// DATA_FILE / UPLOADS_DIR bisa diarahkan ke folder lain (dipakai tes agar data asli tidak tersentuh).
+const dataFile = process.env.DATA_FILE ? path.resolve(process.env.DATA_FILE) : path.join(__dirname, 'data.json');
+const uploadsDir = process.env.UPLOADS_DIR ? path.resolve(process.env.UPLOADS_DIR) : path.join(__dirname, 'uploads');
 const adminAccessTickets = new Map();
 fs.mkdirSync(uploadsDir, { recursive: true });
 

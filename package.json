@@ -7,7 +7,10 @@
     "client": "vite frontend --config frontend/vite.config.mjs",
     "server": "node backend/index.js",
     "build": "vite build frontend --config frontend/vite.config.mjs",
-    "start": "node backend/index.js"
+    "start": "node backend/index.js",
+    "test": "node --test tests/api/*.test.mjs",
+    "test:e2e": "playwright test",
+    "test:all": "npm test && npm run test:e2e"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
@@ -24,6 +27,7 @@
     "vite": "latest"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "concurrently": "latest"
   }
 }
