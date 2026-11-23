@@ -13,3 +13,6 @@ backend/uploads/
 tests/.tmp/
 test-results/
 playwright-report/
+
+# Pengaturan pribadi Claude Code (jangan dibagikan)
+.claude/settings.local.json

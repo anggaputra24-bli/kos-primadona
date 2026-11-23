@@ -102,6 +102,31 @@ describe('Data penghuni', () => {
     assert.equal(status, 400);
   });
 
+  test('status kamar selain tersedia/terisi ditolak', async () => {
+    const { body: { token } } = await login();
+    assert.equal((await call('PATCH', '/api/kamar/1/status', { token, body: { status: 'hancur' } })).status, 400);
+    assert.equal((await call('PATCH', '/api/kamar/1/status', { token, body: {} })).status, 400);
+    assert.equal((await call('GET', '/api/kamar/1')).body.status, 'tersedia');
+  });
+
+  test('kamar yang kembali terisi tidak dihitung menunggak selama kosong', async () => {
+    const { body: { token } } = await login();
+    // Kamar B3 (Nadia) dikosongkan lalu diisi lagi lewat saklar status.
+    await call('PATCH', '/api/kamar/6/status', { token, body: { status: 'tersedia' } });
+    const { body: room } = await call('PATCH', '/api/kamar/6/status', { token, body: { status: 'sudah_dipakai' } });
+    assert.equal(room.tenant, 'Nadia Putri', 'data penghuni tetap disimpan');
+    assert.equal(room.tenant_since, thisPeriod(), 'tagihan dihitung mulai bulan ini');
+    const bill = (await call('GET', '/api/pengingat-bayar', { token })).body.find(b => b.kamar_id === 6);
+    assert.deepEqual(bill.tunggakan, []);
+  });
+
+  test('peraturan harus berupa daftar', async () => {
+    const { body: { token } } = await login();
+    assert.equal((await call('PUT', '/api/lokasi/1/peraturan', { token, body: { peraturan: 'bukan daftar' } })).status, 400);
+    const { body } = await call('PUT', '/api/lokasi/1/peraturan', { token, body: { peraturan: ['  Jaga kebersihan. ', ''] } });
+    assert.deepEqual(body.peraturan, ['Jaga kebersihan.']);
+  });
+
   test('unggahan selain gambar ditolak', async () => {
     const { body: { token } } = await login();
     const form = new FormData();

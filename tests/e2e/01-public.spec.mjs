@@ -85,4 +85,30 @@ test.describe('Website publik', () => {
     await expect(intro).toHaveClass(/is-out/, { timeout: 500 }); // tirai langsung terangkat
     await expect(intro).toBeHidden();
   });
+
+  test('kamar yang tidak ada menampilkan pesan, bukan "Memuat" selamanya', async ({ page }) => {
+    await page.goto('/kamar/99999');
+    await expect(page.getByRole('heading', { name: 'Kamar tidak ditemukan' })).toBeVisible();
+    await page.getByRole('link', { name: 'Lihat daftar kamar' }).click();
+    await expect(page.getByText('Kamar A1').first()).toBeVisible();
+  });
+
+  test('alamat yang salah menampilkan halaman tidak ditemukan', async ({ page }) => {
+    await page.goto('/halaman-yang-tidak-ada');
+    await expect(page.getByRole('heading', { name: 'Halaman tidak ditemukan' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Ke beranda' })).toBeVisible();
+  });
+
+  test('beranda tetap menampilkan kamar walau lokasi nomor 1 sudah dihapus', async ({ page }) => {
+    // Tiru keadaan setelah admin menghapus "Kos Primadona 1".
+    await page.route('**/api/lokasi', async route => {
+      const res = await route.fetch();
+      route.fulfill({ response: res, json: (await res.json()).filter(l => l.id !== 1) });
+    });
+    await page.goto('/');
+    await expect(page.locator('.loc-tabs [role=tab]')).toHaveCount(1);
+    await expect(page.locator('.loc-tabs [role=tab]').first()).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('.room-list .rcard').first()).toBeVisible();
+    await expect(page.getByText('Kamar B1').first()).toBeVisible();
+  });
 });

@@ -9,9 +9,16 @@ const api = async (url, options = {}) => {
   const token = localStorage.getItem('kp_token');
   const headers = { ...(options.headers || {}) };
   if (token && !headers.Authorization) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(url, { ...options, headers });
-  if (!res.ok) throw new Error((await res.json()).message || 'Terjadi kesalahan');
-  return res.json();
+  let res;
+  try { res = await fetch(url, { ...options, headers }); }
+  catch { throw new Error('Tidak bisa terhubung ke server. Periksa koneksi internet lalu coba lagi.'); }
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    const err = new Error(data?.message || (res.status >= 500 ? 'Server sedang bermasalah. Coba lagi sebentar lagi.' : 'Terjadi kesalahan. Coba lagi.'));
+    err.status = res.status;
+    throw err;
+  }
+  return data;
 };
 
 const rupiah = n => new Intl.NumberFormat('id-ID').format(n);
@@ -260,6 +267,10 @@ function Home() {
     }).catch(() => setLoading(false));
   }, []);
 
+  // Lokasi terpilih harus ada (mis. lokasi nomor 1 sudah dihapus admin) → pakai lokasi pertama.
+  useEffect(() => {
+    if (locations.length && !locations.some(l => l.id === locationId)) setLocationId(locations[0].id);
+  }, [locations, locationId]);
   const visible = rooms.filter(r => r.lokasi_id === locationId &&
     (status === 'semua' || r.status === status) &&
     r.harga_sewa <= maxPrice &&
@@ -491,7 +502,15 @@ function Detail() {
   const { id } = useParams();
   const [room, setRoom] = useState(null);
   const [photoIndex, setPhotoIndex] = useState(0);
-  useEffect(() => { api(`/api/kamar/${id}`).then(setRoom).catch(() => {}); window.scrollTo({ top: 0, behavior: 'instant' }); }, [id]);
+  const [loadError, setLoadError] = useState(null);
+  useEffect(() => {
+    setRoom(null); setLoadError(null); setPhotoIndex(0);
+    api(`/api/kamar/${id}`).then(setRoom).catch(err => setLoadError(err));
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [id]);
+  if (loadError) return loadError.status === 404
+    ? <NotFound title="Kamar tidak ditemukan" text="Kamar ini mungkin sudah dihapus atau alamatnya salah. Silakan lihat kamar lain yang tersedia." />
+    : <NotFound title="Kamar gagal dimuat" text={loadError.message} retry />;
   if (!room) return <div className="site lodge"><Header /><p className="site-wrap empty-note">Memuat kamar…</p></div>;
   const text = encodeURIComponent(`Halo, saya tertarik dengan ${room.nama_kamar} di ${room.lokasi.nama_lokasi}. Apakah masih tersedia?`);
   const photos = room.photos && room.photos.length ? room.photos : [room.foto];
@@ -551,6 +570,26 @@ function Detail() {
             </div>
             <Link className="dback" to="/#kamar">{Icon.back}Kembali ke daftar kamar</Link>
           </aside>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+// Halaman untuk alamat yang salah atau kamar yang sudah tidak ada.
+function NotFound({ title = 'Halaman tidak ditemukan', text = 'Alamat yang kamu buka tidak ada. Mungkin salah ketik atau halamannya sudah dipindah.', retry = false }) {
+  return (
+    <div className="site lodge">
+      <Header />
+      <main className="site-wrap lx-404">
+        <p className="sec-index"><i aria-hidden="true" /><span>404</span><em aria-hidden="true">—</em>Tidak ditemukan</p>
+        <h1>{title}</h1>
+        <p>{text}</p>
+        <div className="lx-404-actions">
+          <Link className="lx-btn-accent" to="/#kamar"><i aria-hidden="true" />Lihat daftar kamar{Icon.chevron}</Link>
+          {retry ? <button className="lx-btn-dark" onClick={() => window.location.reload()}><i aria-hidden="true" />Coba lagi</button>
+            : <Link className="lx-btn-dark" to="/"><i aria-hidden="true" />Ke beranda</Link>}
         </div>
       </main>
       <Footer />
@@ -969,11 +1008,19 @@ function Admin() {
     catch { navigate('/admin/login'); }
   };
   const logout = () => { localStorage.removeItem('kp_token'); navigate('/'); };
+  // Aksi admin: bila gagal (sesi habis, server mati) tampilkan pesannya, jangan diam saja.
+  const handleFail = err => { if (err.status === 401) navigate('/admin/login'); else setMessage(`Gagal: ${err.message}`); };
   const toggle = async room => {
-    await api(`/api/kamar/${room.id}/status`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status: room.status === 'tersedia' ? 'sudah_dipakai':'tersedia'}) });
-    refresh();
+    try {
+      await api(`/api/kamar/${room.id}/status`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status: room.status === 'tersedia' ? 'sudah_dipakai':'tersedia'}) });
+      refresh();
+    } catch (err) { handleFail(err); }
   };
-  const removeRoom = async id => { if(confirm('Hapus kamar ini?')) { await api(`/api/kamar/${id}`,{method:'DELETE'}); refresh(); } };
+  const removeRoom = async id => {
+    if (!confirm('Hapus kamar ini?')) return;
+    try { await api(`/api/kamar/${id}`,{method:'DELETE'}); setMessage('Kamar berhasil dihapus.'); refresh(); }
+    catch (err) { handleFail(err); }
+  };
   const submitRoom = async e => {
     e.preventDefault();
     const form = new FormData(e.target);
@@ -1358,8 +1405,19 @@ function RoomTable({ rooms, toggle, removeRoom, edit, locName, compact }) {
 
 function LocationAdmin({ locations, rooms, refresh, setMessage }) {
   const [editing, setEditing] = useState(null);
-  const submit = async e => { e.preventDefault(); const b = Object.fromEntries(new FormData(e.target)); await api(editing?.id ? `/api/lokasi/${editing.id}` : '/api/lokasi', { method: editing?.id ? 'PUT' : 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(b) }); setEditing(null); setMessage('Data lokasi berhasil disimpan.'); refresh(); };
-  const remove = async id => { if (confirm('Hapus lokasi beserta kamarnya?')) { await api(`/api/lokasi/${id}`, { method: 'DELETE' }); refresh(); } };
+  const submit = async e => {
+    e.preventDefault();
+    const b = Object.fromEntries(new FormData(e.target));
+    try {
+      await api(editing?.id ? `/api/lokasi/${editing.id}` : '/api/lokasi', { method: editing?.id ? 'PUT' : 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(b) });
+      setEditing(null); setMessage('Data lokasi berhasil disimpan.'); refresh();
+    } catch (err) { setMessage(`Gagal: ${err.message}`); }
+  };
+  const remove = async id => {
+    if (!confirm('Hapus lokasi beserta kamarnya?')) return;
+    try { await api(`/api/lokasi/${id}`, { method: 'DELETE' }); setMessage('Lokasi berhasil dihapus.'); refresh(); }
+    catch (err) { setMessage(`Gagal: ${err.message}`); }
+  };
   return <>
     {editing ? <section className="adm-panel">
       <div className="adm-panel-head"><h2>{editing.id ? `Ubah ${editing.nama_lokasi}` : 'Lokasi baru'}</h2></div>
@@ -1398,7 +1456,7 @@ function RulesAdmin({ locations, refresh, setMessage }) {
   const [selected, setSelected] = useState(locations[0]?.id);
   const location = locations.find(l => l.id === selected) || locations[0];
   useEffect(() => { if (!selected && locations[0]) setSelected(locations[0].id); }, [locations]);
-  const submit = async e => { e.preventDefault(); const peraturan = [...new FormData(e.target).getAll('rule')].filter(Boolean); await api(`/api/lokasi/${location.id}/peraturan`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ peraturan }) }); setMessage('Peraturan berhasil disimpan.'); refresh(); };
+  const submit = async e => { e.preventDefault(); const peraturan = [...new FormData(e.target).getAll('rule')].filter(Boolean); try { await api(`/api/lokasi/${location.id}/peraturan`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ peraturan }) }); setMessage('Peraturan berhasil disimpan.'); refresh(); } catch (err) { setMessage(`Gagal: ${err.message}`); } };
   if (!location) return null;
   return (
     <section className="adm-panel adm-narrow">
@@ -1444,18 +1502,26 @@ function Footer() {
   );
 }
 
-// ===== Intro pembuka =====
-// Saat website pertama kali dibuka: logo besar dirakit (atap turun, badan rumah naik), nama muncul
-// huruf demi huruf, lalu layar intro tersingkap ke atas seperti tirai dan isi beranda masuk.
+// ===== Intro pembuka (seperti situs referensi) =====
+// 1. Layar polos + "MEMUAT 000 → 100" di kiri bawah.
+// 2. Garis tipis menggambar bentuk logo rumah, lalu atap & badan rumah terisi warna satu per satu,
+//    dan nama "Kos Primadona" muncul di sebelahnya.
+// 3. Di 100: warna logo memudar dan logo berubah jadi "jendela" — website terlihat di dalam bentuk rumah —
+//    lalu jendela itu membesar cepat sampai website memenuhi layar (efek portal).
 // Hanya sekali per sesi browser, tidak di halaman admin, dan bisa dilewati dengan sekali ketuk.
 const INTRO_KEY = 'kp_intro_seen';
-const INTRO_OUT_MS = 1900; // kapan tirai mulai terangkat
-const INTRO_END_MS = 2700; // kapan intro dilepas dari halaman
+const INTRO_OUT_MS = 2900;   // kapan portal mulai
+const INTRO_ZOOM_MS = 1250;  // lama zoom portal
+const HOUSE_ROOF = 'M0 8.477 5.247 3.633l2.422 2.018L10.495 0l2.825 5.651 2.422-2.018 5.247 4.844H0Z';
+const HOUSE_BODY = 'M1.615 8.477h17.76v10.898H1.615z M7.669 11.706v6.055h5.656v-6.055z';
+const HOUSE_W = 21;
+const PORTAL_FOCUS = [4.6, 14.2]; // titik di badan rumah (kiri pintu) yang menjadi pusat zoom
 function shouldPlayIntro(pathname) {
   if (pathname.startsWith('/admin') || prefersReducedMotion()) return false;
   try { return !sessionStorage.getItem(INTRO_KEY); } catch { return false; }
 }
-// Angka 000 → 100 di pojok kiri bawah layar pemuatan; tiap digit berputar seperti odometer.
+
+// Angka 000 → 100 di pojok kiri bawah; tiap digit berputar seperti odometer.
 function IntroCounter({ duration }) {
   const [value, setValue] = useState(0);
   useEffect(() => {
@@ -1470,11 +1536,11 @@ function IntroCounter({ duration }) {
     return () => cancelAnimationFrame(frame);
   }, [duration]);
   return (
-    <div className="lx-counter">
+    <div className={`lx-counter${value === 100 ? ' is-done' : ''}`}>
       <small>Memuat</small>
       <span className="lx-odo">
         {String(value).padStart(3, '0').split('').map((d, i) => (
-          <span key={i} className="lx-odo-col"><span style={{ '--d': d }}>{'0123456789'.split('').map(n => <i key={n}>{n}</i>)}</span></span>
+          <span key={i} className="lx-odo-col"><span style={{ '--d': d, transitionDelay: `${(2 - i) * 30}ms` }}>{'0123456789'.split('').map(n => <i key={n}>{n}</i>)}</span></span>
         ))}
       </span>
     </div>
@@ -1484,22 +1550,55 @@ function IntroCounter({ duration }) {
 function Intro() {
   const { pathname } = useLocation();
   const [phase, setPhase] = useState(() => (shouldPlayIntro(pathname) ? 'in' : 'done'));
-  const timers = React.useRef([]);
+  const timer = React.useRef(0);
+  const frame = React.useRef(0);
+  const markRef = React.useRef(null);
+  const holeRef = React.useRef(null);
+  const leaving = React.useRef(false);
+
+  // Portal: lubang berbentuk rumah di lapisan intro diletakkan tepat di atas logo, lalu diperbesar
+  // (zoom eksponensial) sambil titik fokusnya bergeser ke tengah layar, sampai website memenuhi layar.
   const leave = () => {
-    timers.current.forEach(clearTimeout);
+    if (leaving.current) return;
+    leaving.current = true;
+    clearTimeout(timer.current);
     setPhase('out');
-    timers.current = [setTimeout(() => setPhase('done'), INTRO_END_MS - INTRO_OUT_MS)];
+    const hole = holeRef.current, mark = markRef.current;
+    if (!hole || !mark) { setPhase('done'); return; }
+    const r = mark.getBoundingClientRect();
+    const W = window.innerWidth, H = window.innerHeight;
+    const [fx, fy] = PORTAL_FOCUS;
+    const k0 = r.width / HOUSE_W;
+    const k1 = Math.max(W / 5.6, H / 9.6) * 1.15; // cukup besar agar badan rumah menutupi seluruh layar
+    const s0 = [r.left + k0 * fx, r.top + k0 * fy], s1 = [W / 2, H / 2];
+    const place = t => {
+      const e = t * t * t * (t * (t * 6 - 15) + 10);            // smootherstep: mulai pelan, melaju, lalu halus
+      const k = k0 * Math.pow(k1 / k0, e);
+      const sx = s0[0] + (s1[0] - s0[0]) * e, sy = s0[1] + (s1[1] - s0[1]) * e;
+      hole.setAttribute('transform', `translate(${sx - k * fx} ${sy - k * fy}) scale(${k})`);
+    };
+    place(0);
+    hole.style.opacity = '1';
+    const t0 = performance.now() + 180; // beri jeda singkat: warna logo memudar dulu, lalu zoom
+    const step = now => {
+      const t = Math.min(1, Math.max(0, (now - t0) / INTRO_ZOOM_MS));
+      place(t);
+      if (t < 1) frame.current = requestAnimationFrame(step);
+      else setPhase('done');
+    };
+    frame.current = requestAnimationFrame(step);
   };
+
   useEffect(() => {
     if (phase === 'done') return;
     try { sessionStorage.setItem(INTRO_KEY, '1'); } catch { /* mode privat: intro tetap diputar sekali */ }
-    timers.current = [setTimeout(leave, INTRO_OUT_MS)];
-    return () => timers.current.forEach(clearTimeout);
+    timer.current = setTimeout(leave, INTRO_OUT_MS);
+    return () => { clearTimeout(timer.current); cancelAnimationFrame(frame.current); };
   }, []);
-  // selama intro: halaman tidak bisa digulir dan animasi beranda ditahan sampai tirai terangkat
+  // selama intro: halaman tidak bisa digulir, navbar disembunyikan, dan animasi beranda ditahan
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.toggle('intro-playing', phase === 'in');
+    root.classList.toggle('intro-playing', phase !== 'done');
     root.classList.toggle('intro-lock', phase !== 'done');
     return () => root.classList.remove('intro-playing', 'intro-lock');
   }, [phase]);
@@ -1507,21 +1606,31 @@ function Intro() {
   const name = 'Kos Primadona';
   return (
     <div className={`lx-intro${phase === 'out' ? ' is-out' : ''}`} onClick={phase === 'in' ? leave : undefined} aria-hidden="true">
-      <div className="lx-intro-layer lx-intro-brand" />
-      <div className="lx-intro-layer lx-intro-main">
-        <div className="lx-intro-content">
-          <svg className="lx-intro-mark" viewBox="0 0 21 19.4" fill="none">
-            <path className="lx-intro-roof" fill="#CE4F2F" d="M0 8.477 5.247 3.633l2.422 2.018L10.495 0l2.825 5.651 2.422-2.018 5.247 4.844H0Z" />
-            <path className="lx-intro-body" fill="#CE4F2F" fillRule="evenodd" d="M1.615 8.477h17.76v10.898H1.615z M7.669 11.706v6.055h5.656v-6.055z" />
-          </svg>
-          <p className="lx-intro-name">
-            {[...name].map((ch, i) => <span key={i} style={{ '--i': i }}>{ch === ' ' ? '\u00a0' : ch}</span>)}
-          </p>
-          <p className="lx-intro-tag">Kos bulanan di Jember</p>
-          <i className="lx-intro-line" />
-        </div>
-        <IntroCounter duration={INTRO_OUT_MS - 250} />
+      <svg className="lx-intro-portal" width="100%" height="100%">
+        <defs>
+          <mask id="lx-portal-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
+            <rect width="100%" height="100%" fill="#fff" />
+            {/* garis tipis hitam menutup celah sambungan atap & badan rumah agar tidak terlihat saat diperbesar */}
+            <g ref={holeRef} style={{ opacity: 0 }} stroke="#000" strokeWidth="0.05" strokeLinejoin="round">
+              <path d={HOUSE_ROOF} fill="#000" />
+              <path d={HOUSE_BODY} fill="#000" fillRule="evenodd" />
+            </g>
+          </mask>
+        </defs>
+        <rect width="100%" height="100%" fill="#faf7f3" mask="url(#lx-portal-mask)" />
+      </svg>
+      <div className="lx-intro-content">
+        <svg ref={markRef} className="lx-intro-mark" viewBox="0 0 21 19.4" fill="none">
+          <path className="lx-intro-fill lx-intro-roof" d={HOUSE_ROOF} />
+          <path className="lx-intro-fill lx-intro-body" d={HOUSE_BODY} fillRule="evenodd" />
+          <path className="lx-intro-line" d={HOUSE_ROOF} pathLength="1" />
+          <path className="lx-intro-line l2" d={HOUSE_BODY} pathLength="1" />
+        </svg>
+        <p className="lx-intro-name">
+          {[...name].map((ch, i) => <span key={i} style={{ '--i': i }}>{ch === ' ' ? ' ' : ch}</span>)}
+        </p>
       </div>
+      <IntroCounter duration={INTRO_OUT_MS - 350} />
     </div>
   );
 }
@@ -1532,6 +1641,8 @@ function Intro() {
 (() => {
   try {
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    // foto hero dimuat sedini mungkin agar sudah siap saat portal intro terbuka
+    if (location.pathname === '/') new Image().src = HERO_PHOTO;
     const nav = performance.getEntriesByType?.('navigation')?.[0];
     let fromThisSite = false;
     try { fromThisSite = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch { /* referrer tidak valid */ }
@@ -1551,6 +1662,7 @@ createRoot(document.getElementById('root')).render(
       <Route path="/kamar/:id" element={<Detail />} />
       <Route path="/admin/login" element={<AdminLoginGate />} />
       <Route path="/admin/dashboard" element={<Admin />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   </BrowserRouter>
 );

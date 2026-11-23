@@ -64,4 +64,11 @@ test.describe('Menu samping admin (laci)', () => {
     await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
     await expect(bar).toBeHidden();
   });
+
+  test('tombol status kamar memberi tahu bila gagal tersimpan', async ({ page, request }) => {
+    await loginByApi(page, request);
+    await page.route('**/api/kamar/*/status', route => route.fulfill({ status: 500, contentType: 'text/html', body: '<h1>Bad gateway</h1>' }));
+    await page.locator('.adm-switch').first().click();
+    await expect(page.locator('.adm-toast')).toContainText('Gagal: Server sedang bermasalah');
+  });
 });

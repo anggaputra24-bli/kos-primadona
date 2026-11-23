@@ -148,6 +148,13 @@ const publicRoom = (room, req) => {
   PRIVATE_ROOM_FIELDS.forEach(k => delete copy[k]);
   return copy;
 };
+const ROOM_STATUSES = ['tersedia', 'sudah_dipakai'];
+// Ubah status kamar. Bila kamar kembali terisi, tagihan dihitung mulai bulan ini — bulan-bulan saat kamar
+// kosong tidak boleh ikut terhitung sebagai tunggakan. Data penghuni tetap disimpan.
+function applyStatus(room, status) {
+  if (room.status !== 'sudah_dipakai' && status === 'sudah_dipakai' && room.tenant) room.tenant_since = periodOf(new Date());
+  room.status = status;
+}
 const normalizePhone = value => {
   let digits = String(value || '').replace(/\D/g, '');
   if (digits.startsWith('0')) digits = `62${digits.slice(1)}`;
@@ -223,7 +230,7 @@ app.post('/api/kamar', auth, upload.array('foto', 6), (req, res) => {
   const item = {
     id: Date.now(), lokasi_id: Number(b.lokasi_id), nama_kamar: b.nama_kamar, luas: b.luas,
     harga_sewa: Number(b.harga_sewa), fasilitas: String(b.fasilitas || '').split(',').map(x => x.trim()).filter(Boolean),
-    status: b.status || 'tersedia', foto: files[0] || b.foto || '',
+    status: ROOM_STATUSES.includes(b.status) ? b.status : 'tersedia', foto: files[0] || b.foto || '',
     photos: files.length ? files : (b.foto ? [b.foto] : []),
     tenant: '', due_day: null
   };
@@ -235,6 +242,9 @@ app.put('/api/kamar/:id', auth, upload.array('foto', 6), (req, res) => {
   const b = { ...req.body };
   PRIVATE_ROOM_FIELDS.forEach(k => delete b[k]); // data penghuni diubah lewat /penghuni
   delete b.tenant_since;
+  if (b.status !== undefined && !ROOM_STATUSES.includes(b.status)) return res.status(400).json({ message: 'Status kamar tidak valid' });
+  if (b.status) applyStatus(db.rooms[i], b.status);
+  delete b.status;
   const files = (req.files || []).map(f => `/uploads/${f.filename}`);
   db.rooms[i] = {
     ...db.rooms[i], ...b,
@@ -249,7 +259,9 @@ app.put('/api/kamar/:id', auth, upload.array('foto', 6), (req, res) => {
 app.patch('/api/kamar/:id/status', auth, (req, res) => {
   const room = db.rooms.find(r => r.id === Number(req.params.id));
   if (!room) return res.status(404).json({ message: 'Kamar tidak ditemukan' });
-  room.status = req.body.status;
+  if (!ROOM_STATUSES.includes(req.body.status)) return res.status(400).json({ message: 'Status kamar tidak valid' });
+  if (room.status === req.body.status) return res.json(room);
+  applyStatus(room, req.body.status);
   db.status_history.push({
     id: Date.now(), kamar_id: room.id, status: room.status,
     waktu: new Date().toISOString(), admin: db.admin.username
@@ -494,7 +506,8 @@ app.delete('/api/kamar/:id', auth, (req, res) => {
 app.put('/api/lokasi/:id/peraturan', auth, (req, res) => {
   const location = db.locations.find(l => l.id === Number(req.params.id));
   if (!location) return res.status(404).json({ message: 'Lokasi tidak ditemukan' });
-  location.peraturan = req.body.peraturan;
+  if (!Array.isArray(req.body.peraturan)) return res.status(400).json({ message: 'Daftar peraturan tidak valid' });
+  location.peraturan = req.body.peraturan.map(x => String(x).trim()).filter(Boolean).slice(0, 50);
   save(); res.json(location);
 });
 
