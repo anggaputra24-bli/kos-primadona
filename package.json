@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "concurrently -k \"npm run server\" \"npm run client\"",
+    "dev:hp": "concurrently -k \"npm run server\" \"npm run client -- --host\"",
     "client": "vite frontend --config frontend/vite.config.mjs",
     "server": "node backend/index.js",
     "build": "vite build frontend --config frontend/vite.config.mjs",

@@ -26,7 +26,9 @@ export async function loginByApi(page, request) {
 
 /** Buka laci menu admin (tombol menu), pilih menu, lalu tunggu laci tertutup lagi. */
 export async function openTab(page, name, { tap = false } = {}) {
-  const menuBtn = page.getByRole('button', { name: 'Buka menu' });
+  // Kalau halaman sudah digulir, tombol menu yang terjangkau ada di bilah atas yang menempel.
+  const sticky = page.locator('.adm-stickybar.is-shown').getByRole('button', { name: 'Buka menu' });
+  const menuBtn = (await sticky.count()) ? sticky : page.locator('.adm-head').getByRole('button', { name: 'Buka menu' });
   await (tap ? menuBtn.tap() : menuBtn.click());
   const item = page.locator('.adm-side.is-open .adm-nav').getByRole('button', { name });
   await (tap ? item.tap() : item.click());

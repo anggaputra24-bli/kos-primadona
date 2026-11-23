@@ -38,25 +38,25 @@
 .avail.no { color:var(--off); }
 .loc-tabs::-webkit-scrollbar { display:none; }
 /* ===== Jendela kode akses admin (Ctrl+Z) ===== */
-.access-overlay { position:fixed; z-index:50; inset:0; display:grid; place-items:center; padding:16px; background:rgba(43,21,23,.42); backdrop-filter:blur(6px); }
-.access-card { position:relative; width:min(410px,100%); padding:30px 28px 22px; background:#fff; border:1px solid #efe0d8; border-radius:24px; box-shadow:0 30px 80px rgba(43,21,23,.28); font-family:'Plus Jakarta Sans', system-ui, sans-serif; color:#2b1517; }
+.access-overlay { position:fixed; z-index:50; inset:0; display:grid; place-items:center; padding:16px; background:rgba(29,17,19,.45); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+.access-card { position:relative; width:min(410px,100%); padding:30px 28px 22px; background:#fff; border:1px solid rgba(31,23,24,.11); border-radius:32px; box-shadow:0 30px 80px -20px rgba(29,17,19,.45); font-family:'Plus Jakarta Sans', system-ui, sans-serif; color:#2b1517; }
 .access-card::before { content:''; display:block; width:46px; height:46px; margin-bottom:16px; border-radius:50%;
-  background:#fbe4e2 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238E1523' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='10' width='16' height='11' rx='2.5'/%3E%3Cpath d='M8 10V7a4 4 0 0 1 8 0v3M12 14.5v2.5'/%3E%3C/svg%3E") no-repeat center/22px; }
-.access-card h2 { margin:0 0 6px; font:800 24px 'Plus Jakarta Sans', sans-serif; letter-spacing:-.02em; color:#8E1523; }
+  background:#fbe9df url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b4401f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='10' width='16' height='11' rx='2.5'/%3E%3Cpath d='M8 10V7a4 4 0 0 1 8 0v3M12 14.5v2.5'/%3E%3C/svg%3E") no-repeat center/22px; }
+.access-card h2 { margin:0 0 6px; font:500 30px 'Plus Jakarta Sans', sans-serif; letter-spacing:-.045em; color:#1f1718; }
 .access-sub { margin:0 0 20px; font-size:14px; line-height:1.5; color:#8a7270; padding-right:24px; }
 .access-card label { display:block; margin-bottom:6px; font-size:13px; font-weight:700; color:#5b4446; }
 .access-card input { width:100%; height:48px; padding:0 14px; border:1px solid #efe0d8; border-radius:14px; background:#fbf6f3; color:#2b1517; font-size:15px; letter-spacing:.15em; transition:border-color .25s, box-shadow .25s, background-color .25s; }
-.access-card input:focus { outline:none; background:#fff; border-color:#8E1523; box-shadow:0 0 0 4px rgba(142,21,35,.12); }
+.access-card input:focus { outline:none; background:#fff; border-color:#CE4F2F; box-shadow:0 0 0 4px rgba(206,79,47,.14); }
 .access-field { position:relative; }
 .access-field input { padding-right:50px; }
 .access-eye { position:absolute; top:50%; right:6px; translate:0 -50%; display:grid; place-items:center; width:38px; height:38px; padding:0; border:0; border-radius:10px; background:none; color:#8a7270; cursor:pointer; transition:color .25s, background-color .25s, scale .2s; }
-.access-eye:hover { color:#8E1523; background:#fbe4e2; }
+.access-eye:hover { color:#b4401f; background:#fbe9df; }
 .access-eye:active { scale:.92; }
 .access-eye:focus-visible { outline:2px solid #CE4F2F; outline-offset:1px; }
 .access-eye[aria-pressed="true"] { color:#CE4F2F; }
 .access-eye svg { width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-.access-submit { width:100%; height:50px; margin-top:16px; border:0; border-radius:999px; background:#8E1523; color:#fff; font-size:15px; font-weight:700; transition:background-color .25s, scale .2s; }
-.access-submit:hover:not(:disabled) { background:#a3202f; }
+.access-submit { width:100%; height:50px; margin-top:16px; border:0; border-radius:999px; background:#CE4F2F; color:#fff; font-size:15px; font-weight:600; transition:background-color .25s, scale .2s; }
+.access-submit:hover:not(:disabled) { background:#b4401f; }
 .access-submit:active:not(:disabled) { scale:.97; }
 .access-submit:disabled { cursor:wait; opacity:.7; }
 .access-close { position:absolute; top:18px; right:18px; display:grid; place-items:center; width:34px; height:34px; padding:0; border:1px solid #efe0d8; border-radius:50%; background:#fff; color:#8a7270; transition:color .25s, background-color .25s; }
@@ -68,6 +68,31 @@
 @media (hover:none) and (pointer:coarse) {
   .access-hint .hint-key { display:none; }
   .access-hint .hint-touch { display:inline; }
+}
+
+/* animasi jendela kode: latar memudar, kartu naik dari bawah (seperti "sheet"), isi menyusul satu per satu;
+   saat ditutup kartu turun & memudar */
+@keyframes accFadeIn { from { opacity:0; } }
+@keyframes accFadeOut { to { opacity:0; } }
+@keyframes accSheetIn { from { opacity:0; transform:translateY(56px) scale(.96); filter:blur(6px); } }
+@keyframes accSheetOut { to { opacity:0; transform:translateY(40px) scale(.97); } }
+@keyframes accRise { from { opacity:0; transform:translateY(14px); } }
+@keyframes accSheen { 0%, 62% { translate:-130% 0; } 100% { translate:130% 0; } }
+.access-submit { position:relative; overflow:hidden; isolation:isolate; }
+.access-submit::after { content:''; position:absolute; inset:-1px; z-index:-1; pointer-events:none; background:linear-gradient(105deg, transparent 38%, rgba(255,255,255,.38) 50%, transparent 62%); translate:-130% 0; }
+@media (prefers-reduced-motion:no-preference) {
+  .access-overlay { animation:accFadeIn .45s ease; }
+  .access-card { animation:accSheetIn .8s cubic-bezier(.16,1,.3,1); }
+  .access-card > :not(.access-close) { animation:accRise .6s cubic-bezier(.16,1,.3,1) backwards; }
+  .access-card > :nth-child(2) { animation-delay:.12s; }
+  .access-card > :nth-child(3) { animation-delay:.17s; }
+  .access-card > :nth-child(4) { animation-delay:.22s; }
+  .access-card > :nth-child(5) { animation-delay:.26s; }
+  .access-card > :nth-child(6) { animation-delay:.3s; }
+  .access-card > :nth-child(n+7) { animation-delay:.34s; }
+  .access-submit::after { animation:accSheen 3.6s ease-in-out infinite; }
+  .access-overlay.is-closing { animation:accFadeOut .32s ease forwards; }
+  .access-overlay.is-closing .access-card { animation:accSheetOut .32s cubic-bezier(.5,0,.75,0) forwards; }
 }
 
 /* ===== Dashboard admin ===== */
@@ -83,6 +108,13 @@
 .adm-menu-btn { position:relative; display:grid; place-items:center; width:46px; height:46px; flex:none; padding:0; border:1px solid var(--rule); border-radius:14px; background:#fff; color:var(--ink); cursor:pointer; }
 .adm-menu-btn svg { width:22px; height:22px; }
 .adm-menu-btn .adm-dot { top:8px; right:8px; }
+/* Bilah atas yang menempel saat halaman digulir: tombol menu selalu terjangkau */
+.adm-stickybar { position:fixed; z-index:40; top:0; left:0; right:0; display:flex; align-items:center; gap:12px; padding:10px 40px; background:var(--paper); border-bottom:1px solid var(--rule); transform:translateY(-110%); visibility:hidden; }
+.adm-stickybar.is-shown { transform:none; visibility:visible; }
+.adm-stickybar .adm-menu-btn { width:40px; height:40px; border-radius:12px; }
+.adm-stickybar .adm-menu-btn svg { width:20px; height:20px; }
+.adm-stickybar strong { font-size:16px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.adm.menu-open .adm-stickybar { left:290px; }
 .adm-side .site-logo { padding:0 10px; }
 .adm-side-label { margin:26px 10px 8px; font-size:12px; color:var(--muted); }
 .adm-nav { display:flex; flex-direction:column; gap:2px; }
@@ -246,6 +278,8 @@
   .adm.menu-open { padding-left:0; }
   .adm-side { width:100vw; padding:20px 22px; }
   .site main.adm-main { padding:22px 16px 56px; }
+  .adm-stickybar { padding:8px 16px; }
+  .adm.menu-open .adm-stickybar { left:0; }
   .adm-head { flex-direction:column; align-items:stretch; }
   .adm-head h1 { font-size:26px; }
   .adm-stats div { padding:14px 16px; }

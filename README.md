@@ -90,11 +90,21 @@ Setelah itu masukkan kode rahasia, lalu login seperti biasa. Kode rahasia diveri
 
 ### Membuka dari HP di Wi-Fi yang sama
 
-```bash
-npx concurrently -k "npm run server" "npm run client -- --host"
-```
+1. Pastikan laptop dan HP tersambung ke **Wi-Fi yang sama**.
+2. Di laptop, jalankan:
 
-Buka alamat `Network` yang muncul di terminal (misalnya `http://192.168.1.43:5173`) dari browser HP.
+   ```bash
+   npm run dev:hp
+   ```
+
+3. Di terminal akan muncul alamat `Network`, misalnya `http://192.168.1.180:5173`. Ketik alamat itu di browser HP (Safari/Chrome).
+
+Kalau HP tidak bisa membuka alamatnya:
+
+- Saat pertama kali dijalankan, Windows biasanya menampilkan jendela **Windows Defender Firewall** untuk Node.js. Pilih **Izinkan (Allow access)** untuk jaringan **Private**.
+- Pastikan jaringan Wi-Fi di laptop berjenis **Private**, bukan Public (Settings → Network & internet → Wi-Fi → nama Wi-Fi).
+- Alamat IP laptop bisa berubah kalau pindah Wi-Fi. Selalu pakai alamat `Network` yang muncul di terminal.
+- Wi-Fi umum (kampus, kafe) kadang memblokir koneksi antarperangkat. Kalau begitu, pakai hotspot dari HP.
 
 ### Menjalankan frontend dan backend sekaligus
 

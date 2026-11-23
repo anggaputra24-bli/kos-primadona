@@ -40,4 +40,28 @@ test.describe('Menu samping admin (laci)', () => {
     await expect(page.getByRole('heading', { name: 'Lokasi', level: 1 })).toBeVisible();
     await expect(drawer).not.toHaveClass(/is-open/);
   });
+
+  test('saat digulir ke bawah, tombol menu tetap ada di bilah atas', async ({ page, request }) => {
+    await page.setViewportSize({ width: 1280, height: 500 });
+    await loginByApi(page, request);
+    const bar = page.locator('.adm-stickybar');
+    await expect(bar).toBeHidden(); // di atas halaman cukup tombol menu biasa
+
+    await page.mouse.wheel(0, 2000);
+    await expect(bar).toBeVisible();
+    await expect(bar).toContainText('Ringkasan');
+    const y = await page.evaluate(() => scrollY);
+    expect(y).toBeGreaterThan(0);
+
+    // Dibuka dari bilah atas tanpa perlu menggulir ke atas.
+    await bar.getByRole('button', { name: 'Buka menu' }).click();
+    await expect(page.locator('.adm-side')).toHaveClass(/is-open/);
+    expect(await page.evaluate(() => scrollY)).toBe(y);
+
+    // Pindah menu: halaman baru dimulai dari atas.
+    await page.locator('.adm-nav').getByRole('button', { name: 'Pembayaran' }).click();
+    await expect(page.getByRole('heading', { name: 'Pembayaran', level: 1 })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
+    await expect(bar).toBeHidden();
+  });
 });

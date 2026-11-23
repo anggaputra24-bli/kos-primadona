@@ -12,6 +12,8 @@ export const test = base.extend({
       route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>peta</title>' }));
     await page.route(/fonts\.(googleapis|gstatic)\.com/, route =>
       route.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+    // Intro pembuka dilewati di tes biasa (diuji tersendiri di 01-public: hapus tanda ini dengan addInitScript).
+    await page.addInitScript(() => { try { sessionStorage.setItem('kp_intro_seen', '1'); } catch {} });
     await use(page);
   },
 });

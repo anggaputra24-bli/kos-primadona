@@ -1,141 +1,226 @@
-/* ===== Tema Kos Primadona: alam yang terang =====
-   Latar putih hangat, hijau tua sebagai warna utama, oranye sebagai aksen,
-   kartu bergambar penuh, dan sudut membulat yang lembut.
+/* ===== Tema Kos Primadona: editorial =====
+   Latar putih tulang dengan pola "+" halus, huruf besar yang tipis & rapat, foto penuh,
+   judul bagian bernomor, angka besar bergaris tipis, dan bagian gelap bersudut bulat.
+   Palet sengaja sedikit: netral hangat (putih tulang, tinta, malam) + SATU aksen terakota #CE4F2F.
+   Hijau/merah hanya dipakai admin untuk status pembayaran (lunas / terlambat).
    Dipakai oleh website publik (.lodge) dan dashboard admin (.lodge.adm). */
 
 .lodge {
-  /* palet: marun #8E1523 · terakota #CE4F2F · peach #E29B6A · merah muda #F3B6B6 */
-  --bg:#fbf6f3; --surface:#ffffff; --sand:#f6e9e1; --sand-2:#efdccf;
-  --brand:#8E1523; --brand-2:#a3202f; --brand-soft:#fbe4e2;
+  --bg:#faf7f3; --surface:#ffffff; --sand:#f3ece6; --sand-2:#e9dfd6;
   --clay:#CE4F2F; --clay-2:#b4401f; --clay-soft:#fbe9df;
-  --peach:#E29B6A; --blush:#F3B6B6;
-  --text:#2b1517; --text-2:#5b4446; --muted:#8a7270; --line:#efe0d8; --line-2:#e2cbbf;
+  /* nama lama dipetakan ke palet baru agar aturan lama ikut seragam */
+  --brand:var(--text); --brand-2:#000; --brand-soft:var(--sand); --peach:var(--clay); --blush:var(--clay-soft);
+  --night:#1d1113; --night-2:#2b1a1d;
+  --text:#1f1718; --text-2:#4d4446; --muted:#8b8183; --line:rgba(31,23,24,.11); --line-2:rgba(31,23,24,.2);
   /* hijau hanya untuk arti "tersedia / lunas", merah untuk "terlambat" */
   --ok:#2f7a4f; --ok-soft:#e4f2e9; --danger:#b42318; --danger-soft:#fde8e6;
   --display:'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
-  --r-sm:12px; --r-md:20px; --r-lg:28px;
-  --shadow:0 12px 34px rgba(142,21,35,.08); --shadow-lg:0 24px 60px rgba(142,21,35,.14);
-  --ease:cubic-bezier(.22,.8,.24,1); --spring:cubic-bezier(.34,1.5,.64,1);
+  --pad:max(4vw, 20px);
+  --r-sm:14px; --r-md:20px; --r-lg:clamp(22px, 2.4vw, 36px);
+  --shadow:0 1px 2px rgba(31,23,24,.04), 0 14px 34px -14px rgba(31,23,24,.16);
+  --shadow-lg:0 2px 4px rgba(31,23,24,.04), 0 30px 60px -20px rgba(31,23,24,.22);
+  --ease:cubic-bezier(.16,1,.3,1); --spring:cubic-bezier(.34,1.5,.64,1);
+  --plus:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cpath d='M32 28v8M28 32h8' stroke='%231f1718' stroke-opacity='.09' stroke-width='1'/%3E%3C/svg%3E");
+  --plus-dark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cpath d='M32 28v8M28 32h8' stroke='%23ffffff' stroke-opacity='.1' stroke-width='1'/%3E%3C/svg%3E");
   /* token bersama (dipakai .avail, .loc-tabs, .btn, .site-logo di site.css) */
   --paper:var(--bg); --paper-2:var(--sand); --ink:var(--text); --ink-2:var(--text-2); --rule:var(--line);
   --accent:var(--clay); --accent-ink:var(--clay-2); --off:var(--muted);
   --serif:var(--display); --sans:'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
-  background:var(--bg); color:var(--text-2); font-family:var(--sans);
+  background:var(--bg) var(--plus); color:var(--text-2); font-family:var(--sans);
 }
-html:has(.lodge), body:has(.lodge) { background:#fbf6f3; }
-.lodge h1, .lodge h2, .lodge h3 { font-family:var(--display); font-weight:800; letter-spacing:-.02em; color:var(--text); }
+html:has(.lodge), body:has(.lodge) { background:#faf7f3; }
+.lodge h1, .lodge h2 { font-family:var(--display); font-weight:500; letter-spacing:-.045em; color:var(--text); }
+.lodge h3 { font-family:var(--display); font-weight:600; letter-spacing:-.02em; color:var(--text); }
 .lodge ::selection { background:var(--clay); color:#fff; }
 .lodge a, .lodge button { transition:color .3s var(--ease), background-color .3s var(--ease), border-color .3s var(--ease), box-shadow .3s var(--ease), opacity .3s var(--ease), scale .25s var(--ease); }
 .lodge a:focus-visible, .lodge button:focus-visible, .lodge input:focus-visible, .lodge select:focus-visible { outline:2px solid var(--clay); outline-offset:3px; }
+.lodge .site-wrap { max-width:1320px; padding:0 var(--pad); }
 
-/* ---------- Header ---------- */
-.lodge .site-header { position:sticky; top:0; z-index:20; background:rgba(251,246,243,.86); backdrop-filter:saturate(1.4) blur(14px); border-bottom:1px solid transparent; }
-.lodge .site-header-row { height:76px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
-.lodge .site-logo { gap:12px; font:800 20px var(--display); letter-spacing:-.02em; color:var(--text); }
-.lodge .site-logo img { width:38px; height:38px; }
+/* ---------- Tombol: kapsul dengan titik kecil dan panah ---------- */
+.lx-btn-accent, .lx-btn-dark, .lx-bar-btn, .lodge .site-nav .site-nav-cta {
+  display:inline-flex; align-items:center; gap:10px; height:50px; padding:0 18px 0 20px; border-radius:999px; font-size:15px; font-weight:600; white-space:nowrap; }
+:is(.lx-btn-accent, .lx-btn-dark, .lx-bar-btn, .site-nav-cta) > i { width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+:is(.lx-btn-accent, .lx-btn-dark, .lx-bar-btn, .site-nav-cta) > svg { width:16px !important; height:16px !important; stroke-width:2.2 !important; transition:translate .35s var(--ease); }
+:is(.lx-btn-accent, .lx-btn-dark, .lx-bar-btn, .site-nav-cta):hover > svg { translate:3px 0; }
+.lx-btn-accent, .lx-bar-btn, .lodge .site-nav .site-nav-cta { background:var(--clay); color:#fff; }
+:is(.lx-btn-accent, .lx-bar-btn, .site-nav-cta, .lodge.adm .btn-dark) { position:relative; overflow:hidden; isolation:isolate; }
+:is(.lx-btn-accent, .lx-bar-btn, .site-nav-cta, .lodge.adm .btn-dark)::after { content:''; position:absolute; inset:-1px; z-index:-1; pointer-events:none;
+  background:linear-gradient(105deg, transparent 38%, rgba(255,255,255,.38) 50%, transparent 62%); translate:-130% 0; }
+.lx-btn-accent:hover, .lx-bar-btn:hover, .lodge .site-nav .site-nav-cta:hover { background:var(--clay-2); }
+/* tombol kedua: kapsul putih bergaris tipis, titiknya terakota */
+.lx-btn-dark { background:var(--surface); color:var(--text); border:1px solid var(--line); }
+.lx-btn-dark > i { background:var(--clay); }
+.lx-btn-dark:hover { border-color:var(--line-2); }
+
+/* ---------- Header: tiga kapsul kaca (logo · menu · tombol) ---------- */
+.lodge { --nav-h:72px; }
+.lodge .site-header { position:sticky; top:0; z-index:20; padding:16px 0 0; background:transparent; pointer-events:none; }
+.lodge .site-header .site-header-row { max-width:none; height:56px; margin:0; padding:0 var(--pad); display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.lodge .site-header :is(.site-logo, .site-nav-links) {
+  pointer-events:auto; height:100%; border-radius:999px; border:1px solid rgba(255,255,255,.7);
+  background:rgba(255,255,255,.72); -webkit-backdrop-filter:saturate(1.6) blur(18px); backdrop-filter:saturate(1.6) blur(18px);
+  box-shadow:0 1px 2px rgba(31,23,24,.05), 0 10px 30px -12px rgba(31,23,24,.18); }
+.lodge .site-header .site-nav-cta { pointer-events:auto; height:100%; box-shadow:0 10px 24px -10px rgba(206,79,47,.6); }
+.lodge .site-header.is-hidden:not(:focus-within) :is(.site-logo, .site-nav-links, .site-nav-cta) { translate:0 calc(-100% - 24px); opacity:0; scale:.94; pointer-events:none; }
+.lodge .site-header .site-logo { padding:0 20px 0 10px; }
+.lodge .site-logo { gap:10px; font:700 17px var(--display); letter-spacing:-.03em; color:var(--text); }
+.lodge .site-logo img { width:34px; height:34px; padding:6px; border-radius:50%; background:#fff; }
 .lodge .site-logo span { display:flex; flex-direction:column; line-height:1.1; }
-.lodge .site-logo small { margin-top:3px; font:500 11.5px var(--sans); letter-spacing:0; color:var(--muted); }
-.lodge .site-nav { display:flex; align-items:center; gap:32px; font-size:14px; font-weight:600; }
-.lodge .site-nav a { position:relative; color:var(--text-2); padding:6px 0; }
-.lodge .site-nav a:not(.site-nav-cta)::after { content:''; position:absolute; left:0; right:0; bottom:0; height:2px; border-radius:2px; background:var(--clay); scale:0 1; transition:scale .35s var(--ease); }
-.lodge .site-nav a:not(.site-nav-cta):hover { color:var(--text); }
-.lodge .site-nav a:not(.site-nav-cta):hover::after { scale:1 1; }
-.lodge .site-nav .site-nav-cta { padding:11px 20px; border-radius:999px; background:var(--brand); color:#fff; }
-.lodge .site-nav .site-nav-cta:hover { background:var(--brand-2); }
+.lodge .site-logo small { margin-top:2px; font:500 11px var(--sans); letter-spacing:0; color:var(--muted); }
+.lodge .site-nav { display:flex; align-items:center; gap:10px; height:100%; font-size:14px; font-weight:500; }
+.lodge .site-nav-links { display:flex; align-items:center; gap:2px; padding:0 6px; }
+.lodge .site-nav-links a { padding:8px 16px; border-radius:999px; color:var(--text-2); }
+.lodge .site-nav-links a:hover { background:rgba(31,23,24,.06); color:var(--text); }
+.lodge .site-nav .site-nav-cta { padding:0 16px 0 18px; font-size:14px; }
+/* di atas foto hero: kaca gelap dengan teks putih */
+.lodge .site-header.is-top:has(+ .lx-hero) :is(.site-logo, .site-nav-links) { background:rgba(22,12,14,.22); border-color:rgba(255,255,255,.22); box-shadow:none; }
+.lodge .site-header.is-top:has(+ .lx-hero) .site-logo { color:#fff; }
+.lodge .site-header.is-top:has(+ .lx-hero) .site-logo small { color:rgba(255,255,255,.7); }
+.lodge .site-header.is-top:has(+ .lx-hero) .site-nav-links a { color:rgba(255,255,255,.88); }
+.lodge .site-header.is-top:has(+ .lx-hero) .site-nav-links a:hover { background:rgba(255,255,255,.14); color:#fff; }
 
-/* ---------- Tombol ---------- */
-.lx-btn-accent, .lx-btn-dark { display:inline-flex; align-items:center; gap:10px; height:50px; padding:0 26px; border-radius:999px; font-size:15px; font-weight:700; }
-.lx-btn-accent { background:var(--clay); color:#fff; box-shadow:0 10px 24px rgba(206,79,47,.3); }
-.lx-btn-accent:hover { background:var(--clay-2); }
-.lx-btn-dark { background:var(--brand); color:#fff; }
-.lx-btn-dark:hover { background:var(--brand-2); }
-.lx-btn-accent svg, .lx-btn-dark svg { width:18px; height:18px; transition:translate .35s var(--ease); }
-.lx-btn-accent:hover svg, .lx-btn-dark:hover svg { translate:4px 0; }
-
-/* ---------- Hero ---------- */
-.lx-hero { position:relative; padding-bottom:8px; isolation:isolate; }
-.lx-hero-media { position:absolute; z-index:-1; top:0; right:0; bottom:60px; width:min(66%, 1100px); overflow:hidden;
-  border-bottom-left-radius:220px 160px; }
-.lx-hero-media img { width:100%; height:100%; object-fit:cover; display:block; filter:sepia(.14) saturate(1.05); opacity:0; transform:scale(1.05); transition:opacity 1.2s var(--ease), transform 2.4s var(--ease); }
+/* ---------- Hero: foto penuh satu layar, judul besar di kiri bawah ---------- */
+.lodge .site-header:has(+ .lx-hero) { margin-bottom:calc(-1 * var(--nav-h)); }
+/* Bagian hero lebih tinggi dari layar; isinya menempel (sticky) selama digulir.
+   --p / --e (0→1, diisi JavaScript): foto penuh menyusut jadi bingkai bersudut bulat,
+   judul naik & memudar, lalu foto-foto kamar melayang masuk di sekelilingnya. */
+.lx-hero { --p:0; --e:0; position:relative; height:220vh; }
+.lx-hero-pin { position:sticky; top:0; height:100vh; height:100svh; display:flex; align-items:flex-end; isolation:isolate; overflow:hidden; }
+.lx-hero-media { position:absolute; inset:0; z-index:-1; overflow:hidden; background:var(--night); will-change:clip-path;
+  clip-path:inset(calc(var(--e) * 15%) calc(var(--e) * 19%) calc(var(--e) * 15%) calc(var(--e) * 19%) round calc(var(--e) * 32px)); }
+.lx-hero-media img { width:100%; height:100%; object-fit:cover; display:block; opacity:0; transform:scale(1.06); transition:opacity 1.2s var(--ease), transform 2.4s var(--ease); scale:calc(1.14 - var(--e) * .14); will-change:transform, scale; }
+.lx-float, .lx-drift img, .lodge .site-wrap.lx-hero-copy { will-change:translate, opacity; }
 .lx-hero-media img.is-loaded { opacity:1; transform:none; }
-/* foto memudar ke warna latar di sisi kiri, seperti kabut pagi */
-.lx-hero-media::after { content:''; position:absolute; inset:0; pointer-events:none;
-  background:linear-gradient(90deg, #fbf6f3 0%, rgba(251,246,243,.82) 16%, rgba(251,246,243,0) 46%),
-             linear-gradient(0deg, rgba(251,246,243,.55) 0%, rgba(251,246,243,0) 28%); }
-.lodge .site-wrap.lx-hero-copy { position:relative; padding-top:clamp(56px,9vw,110px); padding-bottom:56px; }
-.lx-eyebrow { margin:0 0 16px; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--brand-2); }
-.lx-title { margin:0 0 20px; max-width:760px; font-size:clamp(40px,5vw,66px); line-height:1.04; letter-spacing:-.035em; }
-.lx-title span { display:block; color:var(--brand); }
-.lx-title em { position:relative; font-style:normal; white-space:nowrap; }
-.lx-title em::after { content:''; position:absolute; left:2%; right:-2%; bottom:-.12em; height:.22em;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 20' preserveAspectRatio='none'%3E%3Cpath d='M3 15C55 5 140 3 197 9' fill='none' stroke='%23CE4F2F' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat center/100% 100%;
-  transform-origin:left; animation:lxDraw 1.1s var(--ease) .5s backwards; }
-@keyframes lxDraw { from { transform:scaleX(0); } }
-.lx-lead { margin:0 0 30px; max-width:440px; font-size:17px; line-height:1.6; color:var(--text-2); }
+.lx-hero-media::after { content:''; position:absolute; inset:0; pointer-events:none; opacity:calc(1 - var(--e) * .85);
+  background:linear-gradient(180deg, rgba(22,12,14,.4) 0%, rgba(22,12,14,0) 24%, rgba(22,12,14,.14) 46%, rgba(22,12,14,.82) 100%),
+             linear-gradient(90deg, rgba(22,12,14,.42) 0%, rgba(22,12,14,0) 60%); }
+.lodge .site-wrap.lx-hero-copy { position:relative; max-width:none; padding-top:calc(var(--nav-h) + 48px); padding-bottom:clamp(36px, 5vw, 72px); color:#fff;
+  opacity:calc(1 - var(--p) * 3.2); translate:0 calc(var(--p) * -180px); }
+/* foto kamar yang melayang masuk saat bingkai menyusut (tiap foto punya kecepatan sendiri) */
+.lx-floats { position:absolute; inset:0; z-index:-2; pointer-events:none; }
+.lx-float { position:absolute; width:clamp(110px, 12vw, 190px); aspect-ratio:3/4; object-fit:cover; border-radius:18px; background:var(--sand);
+  box-shadow:0 24px 50px -20px rgba(31,23,24,.35); opacity:min(1, max(0, calc(var(--e) * 1.8 - .4)));
+  translate:0 calc((1 - var(--e)) * var(--y)); rotate:var(--r); }
+.lx-float.f1 { left:3.5%; top:9%; --y:60vh; --r:-5deg; }
+.lx-float.f2 { right:3%; top:20%; --y:95vh; --r:4deg; width:clamp(100px, 10vw, 160px); }
+.lx-float.f3 { left:8%; bottom:9%; --y:120vh; --r:3deg; width:clamp(90px, 9vw, 150px); }
+.lx-float.f4 { right:8%; bottom:7%; --y:80vh; --r:-3deg; }
+.lx-eyebrow { display:inline-flex; align-items:center; gap:10px; margin:0 0 18px; font-size:12px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#fff; text-shadow:0 1px 12px rgba(22,12,14,.5); }
+.lx-eyebrow::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--clay); }
+.lodge .lx-title { margin:0; font-size:clamp(48px, 7.4vw, 128px); line-height:.94; letter-spacing:-.055em; color:#fff; text-shadow:0 2px 30px rgba(22,12,14,.25); }
+.lx-title span { display:block; color:rgba(255,255,255,.62); }
+.lx-hero-foot { display:flex; align-items:flex-end; gap:24px 48px; flex-wrap:wrap; margin-top:clamp(22px, 3vw, 40px); padding-right:280px; }
+.lx-lead { margin:0; max-width:460px; font-size:clamp(15px, 1.2vw, 18px); line-height:1.6; color:rgba(255,255,255,.82); }
+.lx-scroll { position:absolute; right:var(--pad); bottom:clamp(44px, 5.4vw, 84px); display:inline-flex; align-items:center; gap:12px; font-size:12px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:rgba(255,255,255,.86); }
+.lx-scroll span { font-size:18px; font-weight:400; color:var(--clay); }
 
-/* bilah info putih di bawah hero */
-.lx-bar { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)) auto; align-items:center; gap:0; padding:12px 12px 12px 8px; border-radius:22px; background:var(--surface); box-shadow:var(--shadow-lg); }
-.lx-bar > div { display:flex; align-items:center; gap:12px; padding:8px 18px; }
-.lx-bar > div + div { border-left:1px solid var(--line); }
-.lx-bar svg { width:22px; height:22px; color:var(--brand-2); }
-.lx-bar p { margin:0; display:flex; flex-direction:column; }
-.lx-bar small { font-size:12px; color:var(--muted); }
-.lx-bar b { font-size:14px; font-weight:700; color:var(--text); white-space:nowrap; }
-.lx-bar-btn { display:inline-flex; align-items:center; gap:8px; height:52px; padding:0 24px; border-radius:16px; background:var(--brand); color:#fff; font-weight:700; font-size:14px; white-space:nowrap; }
-.lx-bar-btn:hover { background:var(--brand-2); }
-.lx-bar-btn svg { width:17px; height:17px; color:#fff; }
+/* bilah info di bawah hero: empat kolom bergaris tipis */
+.lx-under-hero { padding-top:clamp(28px, 3.4vw, 48px); }
+.lx-bar { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)) auto; align-items:stretch; gap:0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+.lx-bar > div { display:flex; align-items:flex-start; gap:12px; padding:22px 22px 24px; border-left:1px solid var(--line); }
+.lx-bar > div:first-child { border-left:0; padding-left:0; }
+.lx-bar > div svg { width:18px !important; height:18px !important; margin-top:2px; color:var(--clay); }
+.lx-bar p { margin:0; display:flex; flex-direction:column; gap:6px; }
+.lx-bar small { font-size:12.5px; color:var(--muted); }
+.lx-bar b { font:500 clamp(17px, 1.5vw, 21px)/1.2 var(--display); letter-spacing:-.02em; color:var(--text); }
+.lx-bar-btn { align-self:center; margin-left:22px; }
 
-/* empat keunggulan */
-.lx-perks { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-top:28px; }
-.lx-perks > div { display:flex; align-items:flex-start; gap:14px; padding:18px; border-radius:var(--r-md); background:var(--surface); border:1px solid var(--line); }
-.lx-perks svg { width:44px; height:44px; padding:10px; border-radius:50%; background:var(--brand-soft); color:var(--brand-2); }
+/* kalimat besar yang menyala kata demi kata */
+.lx-statement { --p:0; position:relative; padding:clamp(110px, 15vw, 240px) var(--pad); overflow:clip; }
+.lx-drift { position:absolute; inset:0; pointer-events:none; }
+.lx-drift img { position:absolute; width:clamp(100px, 11vw, 170px); aspect-ratio:3/4; object-fit:cover; border-radius:16px; background:var(--sand);
+  box-shadow:0 20px 44px -20px rgba(31,23,24,.35); translate:0 calc((.5 - var(--p)) * var(--v)); rotate:var(--r); }
+.lx-drift .d1 { left:3%; top:4%; --v:220px; --r:-6deg; }
+.lx-drift .d2 { right:3.5%; top:10%; --v:360px; --r:5deg; width:clamp(90px, 9vw, 140px); }
+.lx-drift .d3 { left:9%; bottom:2%; --v:440px; --r:4deg; width:clamp(80px, 8vw, 130px); }
+.lx-drift .d4 { right:10%; bottom:4%; --v:300px; --r:-4deg; }
+.lx-statement p { position:relative; max-width:min(900px, 62vw) !important; }
+.lx-statement p { margin:0 auto; max-width:1080px; text-align:center; font:500 clamp(28px, 3.7vw, 60px)/1.12 var(--display); letter-spacing:-.045em; color:var(--text); }
+.lx-statement span { opacity:.16; filter:blur(1.5px); transition:opacity .5s var(--ease), filter .6s var(--ease); }
+.lx-statement span.on { opacity:1; filter:none; }
+
+/* "Kos [foto] Primadona": foto di tengah membesar sampai penuh layar, kedua kata terdorong ke samping */
+.lx-zoom { --p:0; --e:0; position:relative; height:240vh; margin-top:clamp(40px, 6vw, 100px); }
+.lx-zoom-pin { position:sticky; top:0; height:100vh; height:100svh; overflow:hidden; }
+/* Foto selalu berukuran penuh layar; yang berubah hanya potongannya (clip-path) dan skala foto di dalamnya.
+   Kata digeser dengan translate. Tidak ada lebar/tinggi yang berubah → tidak ada hitung ulang tata letak per frame. */
+/* --s0: skala foto saat bingkai masih kecil, agar seluruh ruangan terlihat (= max(lebar, tinggi) bingkai ÷ layar) */
+.lx-zoom { --fw:30vw; --fh:38vh; --s0:.42; --shift:0px; }
+/* --k: sisa geseran ke kiri (penuh saat bingkai kecil, nol saat foto sudah penuh layar) */
+.lx-zoom-pin { --k:calc(var(--shift) * (1 - var(--e))); }
+.lx-zoom-fig { position:absolute; inset:0; margin:0; overflow:hidden; background:var(--sand); will-change:clip-path;
+  clip-path:inset(calc((1 - var(--e)) * (50vh - var(--fh) / 2)) calc((1 - var(--e)) * (50vw - var(--fw) / 2) + var(--k))
+                  calc((1 - var(--e)) * (50vh - var(--fh) / 2)) calc((1 - var(--e)) * (50vw - var(--fw) / 2) - var(--k)) round calc((1 - var(--e)) * 28px)); }
+.lx-zoom-fig img { width:100%; height:100%; object-fit:cover; display:block; transform:translateX(calc(-1 * var(--k))) scale(calc(var(--s0) + var(--e) * (1 - var(--s0)))); will-change:transform; }
+.lx-zoom-w { position:absolute; top:50%; font:500 clamp(48px, 6.4vw, 120px)/1 var(--display); letter-spacing:-.055em; color:var(--text); white-space:nowrap;
+  opacity:calc(1 - var(--e) * 1.3); will-change:transform, opacity; }
+.lx-zoom-w.a { right:50%; transform:translate(calc(-1 * (var(--fw) / 2 + 2.2vw) - var(--e) * (50vw - var(--fw) / 2) - var(--k)), -50%); }
+.lx-zoom-w.b { left:50%; transform:translate(calc(var(--fw) / 2 + 2.2vw + var(--e) * (50vw - var(--fw) / 2) - var(--k)), -50%); }
+.lx-zoom-cap { position:absolute; left:var(--pad); bottom:28px; margin:0; font-size:12px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#fff; text-shadow:0 1px 12px rgba(22,12,14,.6); opacity:calc(var(--e) * 2.4 - 1.4); }
+
+/* barisan berjalan berisi fasilitas (bergerak terus, berhenti saat disorot) */
+.lx-marquee { margin-top:clamp(80px, 10vw, 150px); overflow:hidden; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:clamp(18px, 2.2vw, 30px) 0; }
+.lx-marquee-track { display:flex; width:max-content; }
+.lx-marquee span { display:flex; align-items:center; gap:clamp(22px, 2.6vw, 44px); padding-right:clamp(22px, 2.6vw, 44px); }
+.lx-marquee b { font:500 clamp(30px, 4.2vw, 68px)/1.1 var(--display); letter-spacing:-.045em; color:var(--text); white-space:nowrap; }
+.lx-marquee b:nth-of-type(even) { color:transparent; -webkit-text-stroke:1.2px rgba(31,23,24,.35); }
+.lx-marquee i { font-style:normal; font-size:clamp(22px, 2.4vw, 36px); color:var(--clay); }
+
+/* empat keunggulan: kolom bergaris tipis */
+.lx-perks { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0; }
+.lx-perks > div { display:flex; flex-direction:column; gap:18px; padding:4px 26px 8px; border-left:1px solid var(--line); }
+.lx-perks > div:first-child { border-left:0; padding-left:0; }
+.lx-perks svg { width:44px !important; height:44px !important; padding:11px; border-radius:50%; border:1px solid var(--line); color:var(--clay); background:var(--surface); stroke-width:1.6 !important; }
 .lx-perks p { margin:0; }
-.lx-perks b { display:block; font-size:14.5px; color:var(--text); margin-bottom:2px; }
-.lx-perks small { font-size:13px; color:var(--muted); line-height:1.45; }
+.lx-perks b { display:block; font:600 17px var(--display); letter-spacing:-.02em; color:var(--text); margin-bottom:6px; }
+.lx-perks small { font-size:14px; color:var(--muted); line-height:1.55; }
 
 /* ---------- Bagian halaman ---------- */
-.lodge .site-section { padding:clamp(56px,7vw,88px) 0 0; scroll-margin-top:84px; }
-.lodge .sec-head { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:26px; flex-wrap:wrap; }
-.lodge .sec-head h2 { display:flex; align-items:center; gap:10px; margin:0; font-size:clamp(26px,3vw,34px); }
-.lodge .sec-leaf svg { width:22px; height:22px; color:var(--peach); rotate:-12deg; }
-.lodge .sec-head p { margin:0; max-width:400px; color:var(--muted); }
+.lodge .site-section { padding:clamp(80px, 10vw, 150px) 0 0; scroll-margin-top:24px; }
+.lodge .sec-head { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:end; gap:18px 40px; margin-bottom:clamp(28px, 3.4vw, 48px); }
+.lodge .sec-head .sec-index { grid-column:1/-1; }
+.lodge .sec-head h2 { margin:0; max-width:16ch; font-size:clamp(38px, 5vw, 84px); line-height:.98; }
+.lodge .sec-head p { margin:0 0 6px; max-width:340px; color:var(--muted); font-size:15px; }
+.sec-index { display:inline-flex; align-items:center; gap:10px; margin:0 0 4px; font-size:12px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--text-2); }
+.sec-index i { width:7px; height:7px; border-radius:50%; background:var(--clay); }
+.sec-index span { font-variant-numeric:tabular-nums; color:var(--muted); letter-spacing:.06em; }
+.sec-index em { font-style:normal; color:var(--muted); }
 
-/* tab lokasi & penyaring */
+/* tab lokasi & penyaring: semuanya kapsul */
 .lodge .loc-tabs { gap:8px; border:0; margin-bottom:14px; }
-.lodge .loc-tabs button { padding:10px 18px; margin:0; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--text-2); font-weight:600; align-items:center; }
+.lodge .loc-tabs button { padding:11px 20px; margin:0; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--text-2); font-weight:500; align-items:center; }
 .lodge .loc-tabs button:hover { border-color:var(--line-2); color:var(--text); }
-.lodge .loc-tabs button.is-active { background:var(--brand); border-color:var(--brand); color:#fff; }
-.lodge .loc-tabs button span { opacity:.75; }
-.lodge .toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:26px; }
-.lodge .seg { display:inline-flex; padding:4px; gap:2px; border:1px solid var(--line); border-radius:14px; background:var(--surface); }
-.lodge .seg button { border:0; border-radius:10px; background:none; padding:8px 15px; font-size:13px; font-weight:600; color:var(--text-2); }
+.lodge .loc-tabs button.is-active { background:var(--text); border-color:var(--text); color:#fff; }
+.lodge .loc-tabs button span { opacity:.65; }
+.lodge .toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:30px; }
+.lodge .seg { display:inline-flex; padding:4px; gap:2px; border:1px solid var(--line); border-radius:999px; background:var(--surface); }
+.lodge .seg button { border:0; border-radius:999px; background:none; padding:8px 16px; font-size:13px; font-weight:500; color:var(--text-2); }
 .lodge .seg button:hover { color:var(--text); }
-.lodge .seg button.is-active { background:var(--brand-soft); color:var(--brand); }
+.lodge .seg button.is-active { background:var(--clay-soft); color:var(--clay-2); font-weight:600; }
 .lodge .toolbar-selects { display:flex; gap:8px; }
-.lodge .toolbar select { height:42px; padding:0 36px 0 14px; border:1px solid var(--line); border-radius:14px; color:var(--text); font-weight:600;
-  background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a7270' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center/14px;
+.lodge .toolbar select { height:44px; padding:0 38px 0 16px; border:1px solid var(--line); border-radius:999px; color:var(--text); font-weight:500;
+  background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b8183' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center/14px;
   appearance:none; -webkit-appearance:none; font-size:13px; }
-.lodge .toolbar-count { margin-left:auto; font-size:13px; font-weight:600; color:var(--muted); }
+.lodge .toolbar-count { margin-left:auto; font-size:13px; font-weight:500; color:var(--muted); }
 
 /* kartu kamar bergambar penuh */
-.lodge .room-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
-.lodge .rcard { position:relative; aspect-ratio:4/4.6; border-radius:var(--r-md); overflow:hidden; background:var(--sand); box-shadow:var(--shadow); }
+.lodge .room-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:clamp(14px, 1.6vw, 24px); }
+.lodge .rcard { position:relative; aspect-ratio:4/5; border-radius:var(--r-md); overflow:hidden; background:var(--sand); }
 .lodge .rcard-photo { position:absolute; inset:0; display:block; }
 .lodge .rcard-photo img { width:100%; height:100%; object-fit:cover; display:block; }
-.lodge .rcard-photo::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(36,10,14,.25) 0%, rgba(36,10,14,0) 26%, rgba(36,10,14,0) 45%, rgba(36,10,14,.82) 100%); pointer-events:none; }
-.lodge .rcard .avail { position:absolute; z-index:1; top:14px; left:14px; padding:6px 11px; border-radius:999px; background:rgba(40,12,16,.6); backdrop-filter:blur(6px); color:#fff; font-size:12px; font-weight:700; }
-.lodge .rcard .avail.yes::before { background:#8be0a8; }
-.lodge .rcard .avail.no::before { background:#c9cfca; }
-.lodge .cmp { position:absolute; z-index:1; top:10px; right:10px; display:inline-flex; align-items:center; gap:7px; min-height:36px; padding:0 12px; border-radius:999px; background:rgba(255,255,255,.9); color:var(--text); font-size:12px; font-weight:700; cursor:pointer; user-select:none; }
-.lodge .cmp input { width:15px; height:15px; margin:0; accent-color:var(--brand); }
-.lodge .rcard-info { position:absolute; z-index:1; left:0; right:0; bottom:0; padding:18px 20px 18px; pointer-events:none; color:#fff; }
+.lodge .rcard-photo::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(22,12,14,.28) 0%, rgba(22,12,14,0) 24%, rgba(22,12,14,0) 48%, rgba(22,12,14,.8) 100%); pointer-events:none; }
+.lodge .rcard .avail { position:absolute; z-index:1; top:14px; left:14px; padding:7px 12px; border-radius:999px; background:rgba(22,12,14,.32); border:1px solid rgba(255,255,255,.22); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); color:#fff; font-size:12px; font-weight:600; }
+.lodge .rcard .avail.yes::before { background:#fff; }
+.lodge .rcard .avail.no::before { background:rgba(255,255,255,.45); }
+.lodge .cmp { position:absolute; z-index:1; top:10px; right:10px; display:inline-flex; align-items:center; gap:7px; min-height:36px; padding:0 13px; border-radius:999px; background:rgba(255,255,255,.92); color:var(--text); font-size:12px; font-weight:600; cursor:pointer; user-select:none; }
+.lodge .cmp input { width:15px; height:15px; margin:0; accent-color:var(--clay); }
+.lodge .rcard-info { position:absolute; z-index:1; left:0; right:0; bottom:0; padding:20px 22px 22px; pointer-events:none; color:#fff; }
 .lodge .rcard-info a { pointer-events:auto; }
-.lodge .rcard h3 { margin:0 0 4px; font-size:22px; color:#fff; }
-.lodge .rcard h3 a:hover { text-decoration:underline; text-underline-offset:4px; text-decoration-thickness:2px; }
-.lodge .rcard-meta { margin:0 0 10px; font-size:13px; color:rgba(255,255,255,.82); }
-.lodge .rcard-price { margin:0; font:800 21px var(--display); color:#F3B6B6; letter-spacing:-.01em; }
-.lodge .rcard-price small { font:500 13px var(--sans); color:rgba(255,255,255,.75); margin-left:2px; }
-.lodge .rcard.is-loading { box-shadow:none; }
+.lodge .rcard h3 { margin:0 0 6px; font-size:26px; font-weight:500; letter-spacing:-.04em; color:#fff; }
+.lodge .rcard h3 a:hover { text-decoration:underline; text-underline-offset:5px; text-decoration-thickness:1.5px; }
+.lodge .rcard-meta { margin:0 0 14px; font-size:13px; color:rgba(255,255,255,.78); }
+.lodge .rcard-price { margin:0; padding-top:14px; border-top:1px solid rgba(255,255,255,.2); font:600 20px var(--display); color:#fff; letter-spacing:-.02em; }
+.lodge .rcard-price small { font:500 13px var(--sans); color:rgba(255,255,255,.7); margin-left:2px; }
 .lodge .rcard.is-loading .rcard-photo, .lodge .rcard .sk { position:static; background:linear-gradient(90deg, var(--sand), var(--sand-2), var(--sand)); background-size:200% 100%; animation:lxShine 1.3s linear infinite; }
 .lodge .rcard.is-loading .rcard-photo { height:100%; }
 .lodge .rcard .sk { display:none; }
@@ -143,51 +228,51 @@ html:has(.lodge), body:has(.lodge) { background:#fbf6f3; }
 .lodge .empty-note { color:var(--muted); padding:40px 0; }
 
 /* lokasi */
-.lodge .loc-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
-.lodge .loc-item { padding:10px; border-radius:var(--r-md); background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow); }
-.lodge .loc-map { aspect-ratio:16/8; border-radius:var(--r-sm); overflow:hidden; background:var(--sand); }
-.lodge .loc-map iframe, .lodge .dmap iframe { width:100%; height:100%; border:0; display:block; filter:saturate(.85); }
-.lodge .loc-body { padding:18px 12px 6px; }
-.lodge .loc-body h3 { margin:0 0 8px; font-size:22px; }
-.lodge .loc-body > p { margin:0 0 14px; color:var(--text-2); }
+.lodge .loc-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:clamp(14px, 1.6vw, 24px); }
+.lodge .loc-item { padding:10px; border-radius:var(--r-lg); background:var(--surface); border:1px solid var(--line); }
+.lodge .loc-map { aspect-ratio:16/8; border-radius:calc(var(--r-lg) - 10px); overflow:hidden; background:var(--sand); }
+.lodge .loc-map iframe, .lodge .dmap iframe { width:100%; height:100%; border:0; display:block; filter:saturate(.8); }
+.lodge .loc-body { padding:22px 16px 10px; }
+.lodge .loc-body h3 { margin:0 0 10px; font-size:clamp(24px, 2.2vw, 32px); font-weight:500; letter-spacing:-.04em; }
+.lodge .loc-body > p { margin:0 0 16px; color:var(--text-2); }
 .lodge .loc-addr { display:flex; align-items:flex-start; gap:8px; color:var(--muted) !important; font-size:14px; }
 .lodge .loc-addr svg { margin-top:3px; color:var(--clay); }
-.lodge .loc-foot { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding-top:14px; margin-top:8px; border-top:1px solid var(--line); font-size:14px; }
-.lodge .loc-foot b { font:800 20px var(--display); color:var(--brand); margin-right:4px; }
-.lodge .loc-foot a { display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:999px; background:var(--brand); color:#fff; font-weight:700; }
-.lodge .loc-foot a:hover { background:var(--brand-2); }
+.lodge .loc-foot { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding-top:16px; margin-top:8px; border-top:1px solid var(--line); font-size:14px; }
+.lodge .loc-foot b { font:500 30px var(--display); letter-spacing:-.04em; color:var(--text); margin-right:6px; }
+.lodge .loc-foot a { display:inline-flex; align-items:center; gap:8px; height:46px; padding:0 20px; border-radius:999px; background:var(--clay); color:#fff; font-weight:600; }
+.lodge .loc-foot a:hover { background:var(--clay-2); }
 
-/* panduan cara menyewa */
-.lx-guide { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.6fr); gap:28px; align-items:center; padding:clamp(24px,3.4vw,40px); border-radius:var(--r-lg); background:var(--sand); }
-.lx-guide-copy h2 { margin:0 0 10px; font-size:clamp(26px,3vw,34px); }
-.lx-guide-copy > p:not(.lx-eyebrow) { margin:0 0 24px; color:var(--text-2); }
-.lx-guide-copy .lx-eyebrow { margin-bottom:10px; }
-.lodge .steps { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
-.lodge .steps li { padding:20px 18px 22px; border-radius:var(--r-md); background:var(--surface); box-shadow:var(--shadow); }
-.lodge .steps span { display:inline-grid; place-items:center; width:40px; height:40px; border-radius:50%; background:var(--brand-soft); color:var(--brand); font:800 14px var(--display); }
-.lodge .steps h3 { margin:16px 0 6px; font-size:17px; }
-.lodge .steps p { margin:0; font-size:13.5px; line-height:1.5; color:var(--text-2); }
+/* panduan cara menyewa: bagian gelap bersudut bulat */
+.lx-guide { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.5fr); gap:clamp(28px, 4vw, 72px); align-items:end; padding:clamp(32px, 5.4vw, 88px); border-radius:var(--r-lg); background:var(--night) var(--plus-dark); color:rgba(255,255,255,.72); }
+.lx-guide .sec-index { color:rgba(255,255,255,.82); }
+.lx-guide .sec-index span, .lx-guide .sec-index em { color:rgba(255,255,255,.45); }
+.lodge .lx-guide-copy h2 { margin:14px 0 14px; font-size:clamp(36px, 4.4vw, 72px); line-height:.98; color:#fff; }
+.lx-guide-copy > p:not(.sec-index) { margin:0 0 28px; max-width:360px; color:rgba(255,255,255,.66); }
+.lx-guide .lx-btn-dark { background:#fff; border-color:#fff; }
+.lodge .steps { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; }
+.lodge .steps li { padding:4px 22px 4px; border-left:1px solid rgba(255,255,255,.14); }
+.lodge .steps span { display:block; font:400 clamp(44px, 4.6vw, 76px)/1 var(--display); letter-spacing:-.05em; color:#fff; }
+.lodge .steps span::after { content:'.'; color:var(--clay); }
+.lodge .steps h3 { margin:26px 0 8px; font-size:18px; color:#fff; }
+.lodge .steps p { margin:0; font-size:14px; line-height:1.55; color:rgba(255,255,255,.62); }
 
-/* banner hijau ajakan */
-.lx-cta-wrap { padding-top:clamp(40px,5vw,64px); }
-.lx-cta { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); min-height:300px; border-radius:var(--r-lg); overflow:hidden; background:var(--brand); box-shadow:var(--shadow-lg); }
-.lx-cta-media { position:relative; background:#6e0f1a; border-top-right-radius:50% 100%; border-bottom-right-radius:50% 100%; overflow:hidden; margin-right:-48px; z-index:0; }
+/* banner ajakan */
+.lodge .lx-cta-wrap { padding-top:clamp(16px, 2vw, 24px); }
+.lx-cta { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:10px; min-height:360px; padding:10px; border-radius:var(--r-lg); overflow:hidden; background:var(--surface); border:1px solid var(--line); }
+.lx-cta-media { position:relative; border-radius:calc(var(--r-lg) - 10px); overflow:hidden; background:var(--sand); }
 .lx-cta-media img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
-.lx-cta-copy { position:relative; z-index:1; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; padding:40px clamp(28px,4vw,56px) 40px clamp(56px,6vw,88px); color:#e6efe8; }
-.lx-cta-copy .lx-eyebrow { color:#F3B6B6; }
-.lx-cta-copy h2 { margin:0 0 12px; font-size:clamp(28px,3.2vw,38px); line-height:1.12; color:#fff; }
-.lx-cta .lx-btn-accent { background:var(--blush); color:#5c0b15; box-shadow:none; }
-.lx-cta .lx-btn-accent:hover { background:#f7cbcb; }
-.lx-cta-copy > p:not(.lx-eyebrow) { margin:0 0 26px; max-width:380px; color:#f6d9d4; }
+.lx-cta-copy { display:flex; flex-direction:column; justify-content:flex-end; align-items:flex-start; padding:clamp(24px, 4vw, 56px); }
+.lodge .lx-cta-copy h2 { margin:14px 0 14px; font-size:clamp(34px, 4.2vw, 68px); line-height:.98; }
+.lx-cta-copy > p:not(.sec-index) { margin:0 0 28px; max-width:400px; color:var(--text-2); }
 
-/* angka ringkasan */
-.lx-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0; margin-top:40px; padding:22px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
-.lx-stats > div { display:flex; align-items:center; gap:14px; padding:4px 24px; }
-.lx-stats > div + div { border-left:1px solid var(--line); }
-.lx-stats svg { width:30px; height:30px; color:var(--brand-2); stroke-width:1.6; }
-.lx-stats p { margin:0; display:flex; flex-direction:column; }
-.lx-stats b { font:800 24px var(--display); letter-spacing:-.02em; color:var(--text); }
-.lx-stats small { font-size:12.5px; color:var(--muted); }
+/* angka ringkasan: besar & tipis, dipisah garis tegak */
+.lx-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0; margin-top:clamp(56px, 7vw, 110px); }
+.lx-stats > div { display:flex; flex-direction:column; justify-content:space-between; gap:28px; padding:6px 24px 8px; border-left:1px solid var(--line); }
+.lx-stats svg { display:none; }
+.lx-stats p { flex:1; margin:0; display:flex; flex-direction:column; justify-content:space-between; gap:22px; }
+.lx-stats b { font:400 clamp(44px, 6.2vw, 104px)/.9 var(--display); letter-spacing:-.06em; color:var(--text); white-space:nowrap; }
+.lx-stats > div:last-child b { font-size:clamp(30px, 3.4vw, 56px); }
+.lx-stats small { font-size:14px; color:var(--muted); }
 
 /* panel bandingkan */
 .lodge .cmp-panel { position:fixed; z-index:30; left:50%; bottom:20px; translate:-50% 0; width:min(780px,calc(100% - 32px)); background:var(--surface); border:1px solid var(--line); border-radius:var(--r-md); box-shadow:var(--shadow-lg); overflow:hidden; animation:lxCmpIn .4s var(--ease); }
@@ -201,124 +286,154 @@ html:has(.lodge), body:has(.lodge) { background:#fbf6f3; }
 .lodge .cmp-row:last-child { border-bottom:0; }
 .lodge .cmp-row span { padding:10px 18px; color:var(--text-2); }
 .lodge .cmp-row span:first-child { color:var(--muted); }
-.lodge .cmp-names span { display:flex; justify-content:space-between; align-items:center; font-weight:700; color:var(--brand); }
+.lodge .cmp-names span { display:flex; justify-content:space-between; align-items:center; font-weight:600; color:var(--text); }
 .lodge .cmp-names svg { width:14px; height:14px; }
 
-/* footer */
-.lodge .site-footer { margin-top:56px; background:var(--surface); color:var(--text-2); font-size:14px; padding:56px 0 0; border-top:1px solid var(--line); }
-.lodge .foot-grid { display:grid; grid-template-columns:1.4fr 1fr 1fr .8fr; gap:32px; padding-bottom:40px; }
-.lodge .foot-brand p { margin:14px 0 0; max-width:260px; color:var(--muted); }
-.lodge .site-footer .site-logo.light { color:var(--text); }
+/* footer: gelap bersudut bulat di atas */
+.lodge .site-footer { margin-top:clamp(80px, 10vw, 150px); background:var(--night) var(--plus-dark); color:rgba(255,255,255,.62); font-size:14px; padding:clamp(56px, 6vw, 88px) 0 0; border-radius:var(--r-lg) var(--r-lg) 0 0; }
+.lodge .foot-grid { display:grid; grid-template-columns:1.4fr 1fr 1fr .8fr; gap:32px; padding-bottom:48px; }
+.lodge .foot-brand p { margin:16px 0 0; max-width:280px; }
+.lodge .site-footer .site-logo.light { color:#fff; font-size:20px; }
 .lodge .site-footer .site-logo.light img { filter:none; }
-.lodge .site-footer h4 { margin:4px 0 12px; font:800 14px var(--display); color:var(--text); }
+.lodge .site-footer h4 { margin:4px 0 14px; font:600 12px var(--display); letter-spacing:.18em; text-transform:uppercase; color:#fff; }
 .lodge .site-footer p { margin:0 0 8px; }
-.lodge .site-footer a:not(.site-logo) { display:block; color:var(--text-2); margin-bottom:8px; }
-.lodge .site-footer a:not(.site-logo):hover { color:var(--brand-2); }
-.lodge .foot-bottom { border-top:1px solid var(--line); padding-top:18px; padding-bottom:22px; font-size:12.5px; color:var(--muted); text-align:center; }
+.lodge .site-footer a:not(.site-logo) { display:block; color:rgba(255,255,255,.62); margin-bottom:8px; }
+.lodge .site-footer a:not(.site-logo):hover { color:#fff; }
+.lodge .foot-bottom { border-top:1px solid rgba(255,255,255,.1); padding-top:20px; padding-bottom:24px; font-size:12.5px; color:rgba(255,255,255,.45); }
 
 /* ---------- Halaman detail ---------- */
-.lodge main.dpage { max-width:1160px; margin:0 auto; padding:28px 24px 40px; }
-.lodge .crumbs { display:flex; gap:8px; font-size:13px; color:var(--muted); margin-bottom:22px; }
-.lodge .crumbs a:hover { color:var(--brand-2); }
-.lodge .crumbs b { font-weight:700; color:var(--text); }
-.lodge .dhead { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; margin-bottom:24px; }
-.lodge .dhead h1 { margin:0 0 10px; font-size:clamp(36px,5vw,58px); line-height:1; letter-spacing:-.035em; color:var(--brand); }
+.lodge main.dpage { max-width:1320px; margin:0 auto; padding:28px var(--pad) 40px; }
+.lodge .crumbs { display:flex; gap:8px; font-size:13px; color:var(--muted); margin-bottom:26px; }
+.lodge .crumbs a:hover { color:var(--clay-2); }
+.lodge .crumbs b { font-weight:600; color:var(--text); }
+.lodge .dhead { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; margin-bottom:28px; }
+.lodge .dhead h1 { margin:0 0 14px; font-size:clamp(48px, 7vw, 112px); line-height:.92; letter-spacing:-.055em; color:var(--text); }
 .lodge .dhead .loc-addr { margin:0; }
-.lodge .dhead .avail { padding:7px 13px; border-radius:999px; background:var(--ok-soft); font-size:13px; font-weight:700; }
-.lodge .dhead .avail.no { background:var(--sand); }
-.lodge .dgrid { display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:36px; align-items:start; }
-.lodge .dgallery { position:relative; aspect-ratio:3/2; border-radius:var(--r-lg); overflow:hidden; background:var(--sand); box-shadow:var(--shadow); }
+.lodge .dhead .avail { padding:8px 14px; border-radius:999px; background:var(--surface); border:1px solid var(--line); font-size:13px; font-weight:600; }
+.lodge:not(.adm) .avail.yes { color:var(--clay-2); }
+.lodge:not(.adm) .avail.no { color:var(--muted); }
+.lodge .dgrid { display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:clamp(24px, 3vw, 48px); align-items:start; }
+.lodge .dgallery { position:relative; aspect-ratio:3/2; border-radius:var(--r-lg); overflow:hidden; background:var(--sand); }
 .lodge .dgallery img { width:100%; height:100%; object-fit:cover; display:block; }
-.lodge .dg-nav { position:absolute; top:50%; translate:0 -50%; width:44px; height:44px; border-radius:50%; border:0; background:rgba(255,255,255,.92); color:var(--text); display:grid; place-items:center; box-shadow:var(--shadow); }
-.lodge .dg-nav:hover { background:#fff; color:var(--brand); }
+.lodge .dg-nav { position:absolute; top:50%; translate:0 -50%; width:46px; height:46px; border-radius:50%; border:1px solid rgba(255,255,255,.5); background:rgba(255,255,255,.86); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); color:var(--text); display:grid; place-items:center; }
+.lodge .dg-nav:hover { background:#fff; color:var(--clay-2); }
 .lodge .dg-nav.prev { left:16px; } .lodge .dg-nav.next { right:16px; }
-.lodge .dg-count { position:absolute; right:16px; bottom:16px; background:rgba(40,12,16,.6); backdrop-filter:blur(6px); color:#fff; font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; }
+.lodge .dg-count { position:absolute; right:16px; bottom:16px; background:rgba(22,12,14,.4); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font-size:12px; font-weight:600; padding:6px 12px; border-radius:999px; }
 .lodge .dthumbs { display:flex; gap:10px; margin-top:12px; }
-.lodge .dthumbs button { width:88px; aspect-ratio:4/3; padding:0; border:2px solid transparent; border-radius:var(--r-sm); overflow:hidden; background:none; opacity:.65; }
+.lodge .dthumbs button { width:92px; aspect-ratio:4/3; padding:0; border:2px solid transparent; border-radius:var(--r-sm); overflow:hidden; background:none; opacity:.6; }
 .lodge .dthumbs button.is-active { border-color:var(--clay); opacity:1; }
 .lodge .dthumbs img { width:100%; height:100%; object-fit:cover; display:block; }
-.lodge .dsec { padding:32px 0; border-bottom:1px solid var(--line); }
+.lodge .dsec { padding:40px 0; border-bottom:1px solid var(--line); }
 .lodge .dsec:last-child { border-bottom:0; }
-.lodge .dsec h2 { margin:0 0 16px; font-size:24px; }
-.lodge .dsec > p { margin:0 0 16px; color:var(--text-2); }
-.lodge .flist { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
-.lodge .flist li { display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:var(--r-sm); background:var(--surface); border:1px solid var(--line); color:var(--text); font-weight:600; }
-.lodge .flist svg { width:22px; height:22px; padding:4px; border-radius:50%; background:var(--brand-soft); color:var(--brand-2); }
+.lodge .dsec h2 { margin:0 0 20px; font-size:clamp(28px, 2.6vw, 40px); }
+.lodge .dsec > p { margin:0 0 18px; color:var(--text-2); }
+.lodge .flist { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 24px; }
+.lodge .flist li { display:flex; align-items:center; gap:12px; padding:14px 0; border-bottom:1px solid var(--line); color:var(--text); font-weight:500; }
+.lodge .flist svg { width:26px !important; height:26px !important; padding:5px; border-radius:50%; background:var(--clay-soft); color:var(--clay-2); }
 .lodge .rlist { margin:0; padding:0; list-style:none; counter-reset:r; color:var(--text-2); }
-.lodge .rlist li { counter-increment:r; display:grid; grid-template-columns:44px 1fr; align-items:baseline; padding:12px 0; border-bottom:1px solid var(--line); }
+.lodge .rlist li { counter-increment:r; display:grid; grid-template-columns:52px 1fr; align-items:baseline; padding:14px 0; border-bottom:1px solid var(--line); }
 .lodge .rlist li:last-child { border-bottom:0; }
-.lodge .rlist li::before { content:counter(r, decimal-leading-zero); font:800 14px var(--display); color:var(--clay); font-variant-numeric:tabular-nums; }
+.lodge .rlist li::before { content:counter(r, decimal-leading-zero); font:500 14px var(--display); color:var(--clay); font-variant-numeric:tabular-nums; }
 .lodge .dmap { aspect-ratio:16/7; border-radius:var(--r-md); overflow:hidden; border:1px solid var(--line); }
-.lodge .dside { position:sticky; top:100px; }
-.lodge .dbox { padding:24px; border-radius:var(--r-md); background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow-lg); }
-.lodge .dprice { margin:0 0 18px; font:800 34px var(--display); letter-spacing:-.03em; color:var(--brand); }
-.lodge .dprice small { font:500 15px var(--sans); color:var(--muted); }
-.lodge .dspecs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 0 18px; }
-.lodge .dspecs div { padding:10px 12px; border-radius:var(--r-sm); background:var(--bg); border:1px solid var(--line); }
+.lodge .dside { position:sticky; top:96px; }
+.lodge .dbox { padding:26px; border-radius:var(--r-lg); background:var(--surface); border:1px solid var(--line); box-shadow:var(--shadow); }
+.lodge .dprice { margin:0 0 20px; font:500 44px/1 var(--display); letter-spacing:-.05em; color:var(--text); }
+.lodge .dprice small { font:500 15px var(--sans); letter-spacing:0; color:var(--muted); }
+.lodge .dspecs { display:grid; grid-template-columns:1fr 1fr; gap:0; margin:0 0 22px; border-top:1px solid var(--line); }
+.lodge .dspecs div { padding:12px 0; border-bottom:1px solid var(--line); }
+.lodge .dspecs div:nth-child(2) { padding-left:16px; border-left:1px solid var(--line); }
 .lodge .dspecs div:last-child { grid-column:1/-1; }
-.lodge .dspecs dt { font-size:11.5px; color:var(--muted); }
-.lodge .dspecs dd { margin:2px 0 0; font-size:14px; font-weight:700; color:var(--text); }
-.lodge .dbox .btn-dark { height:50px; border-radius:999px; background:var(--clay); color:#fff; font-weight:700; box-shadow:0 10px 24px rgba(206,79,47,.28); }
+.lodge .dspecs dt { font-size:12px; color:var(--muted); }
+.lodge .dspecs dd { margin:3px 0 0; font-size:15px; font-weight:600; color:var(--text); }
+.lodge .dbox .btn-dark { height:52px; border-radius:999px; background:var(--clay); color:#fff; font-weight:600; font-size:15px; }
 .lodge .dbox .btn-dark:hover { background:var(--clay-2); }
 .lodge .dnote { margin:12px 0 0; font-size:12.5px; color:var(--muted); text-align:center; }
-.lodge .dback { display:inline-flex; align-items:center; gap:8px; margin-top:16px; font-size:14px; font-weight:600; color:var(--text-2); }
-.lodge .dback:hover { color:var(--brand-2); }
+.lodge .dback { display:inline-flex; align-items:center; gap:8px; margin-top:16px; font-size:14px; font-weight:500; color:var(--text-2); }
+.lodge .dback:hover { color:var(--clay-2); }
 
 /* ---------- Responsif ---------- */
 @media (max-width:1100px) {
-  .lx-bar { grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px 0; padding:12px; }
-  .lx-bar > div:nth-child(3) { border-left:0; }
-  .lx-bar-btn { grid-column:1/-1; justify-content:center; margin-top:6px; }
-  .lx-perks { grid-template-columns:repeat(2,minmax(0,1fr)); }
-  .lx-guide { grid-template-columns:1fr; }
+  .lx-bar { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .lx-bar > div:nth-child(3) { border-left:0; padding-left:0; }
+  .lx-bar > div:nth-child(n+3) { border-top:1px solid var(--line); }
+  .lx-bar-btn { grid-column:1/-1; justify-content:center; margin:16px 0 20px; }
+  .lx-perks { grid-template-columns:repeat(2,minmax(0,1fr)); gap:32px 0; }
+  .lx-perks > div:nth-child(3) { border-left:0; padding-left:0; }
+  .lx-guide { grid-template-columns:1fr; align-items:start; }
+  .lx-hero-foot { padding-right:0; }
+  .lx-scroll { display:none; }
 }
 @media (max-width:960px) {
+  .lodge .site-nav-links { display:none; }
   .lodge .room-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .lodge .loc-grid { grid-template-columns:1fr; }
   .lodge .foot-grid { grid-template-columns:1fr 1fr; }
   .lx-cta { grid-template-columns:1fr; }
-  .lx-cta-media { min-height:200px; margin:0; border-radius:0 0 50% 50% / 0 0 22% 22%; }
-  .lx-cta-copy { padding:32px 28px 36px; }
-  .lx-stats { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px 0; }
+  .lx-cta-media { min-height:220px; }
+  .lx-stats { grid-template-columns:repeat(2,minmax(0,1fr)); gap:40px 0; }
   .lx-stats > div:nth-child(3) { border-left:0; }
   .lodge .dgrid { display:flex; flex-direction:column; align-items:stretch; gap:0; }
   .lodge .dmain { display:contents; }
   .lodge .dgallery, .lodge .dthumbs { order:1; }
   .lodge .dside { order:2; position:static; margin:24px 0 8px; }
   .lodge .dsec { order:3; }
+  .lodge .sec-head { grid-template-columns:1fr; }
 }
 @media (max-width:760px) {
-  .lodge .site-nav a:not(.site-nav-cta) { display:none; }
-  .lx-hero-media { position:relative; z-index:0; width:auto; height:240px; margin:0 16px; bottom:auto; border-radius:var(--r-lg); }
-  .lx-hero-media::after { background:linear-gradient(0deg, rgba(251,246,243,.35), rgba(251,246,243,0) 40%); }
-  .lodge .site-wrap.lx-hero-copy { padding-top:24px; padding-bottom:32px; }
+  .lx-hero { height:180vh; }
+  .lx-hero-media { clip-path:inset(calc(var(--e) * 16%) calc(var(--e) * 8%) calc(var(--e) * 22%) calc(var(--e) * 8%) round calc(var(--e) * 24px)); }
+  .lx-float { width:26vw; }
+  .lx-float.f1 { left:4%; top:6%; } .lx-float.f2 { right:4%; top:7%; width:22vw; }
+  .lx-float.f3 { left:6%; bottom:4%; width:22vw; } .lx-float.f4 { right:5%; bottom:5%; width:26vw; }
+  .lx-statement { padding:190px var(--pad); }
+  .lx-statement p { max-width:none !important; }
+  .lx-drift .d3, .lx-drift .d4 { display:none; }
+  .lx-drift img { width:21vw; }
+  .lx-drift .d1 { left:4%; top:22px; --v:70px; } .lx-drift .d2 { right:4%; top:auto; bottom:22px; --v:90px; }
+  .lx-zoom { height:200vh; }
+  /* HP: bingkai hampir selebar layar & setengah tinggi layar; "Kos" rata kiri di atas foto,
+     "Primadona" rata kanan di bawahnya, sehingga tidak ada ruang kosong besar */
+  .lx-zoom { --fw:calc(100vw - 2 * var(--pad)); --fh:50vh; --s0:.9; margin-top:clamp(24px, 6vw, 40px); }
+  .lx-zoom-w { top:50%; font-size:clamp(56px, 19vw, 96px); line-height:.9; }
+  .lx-zoom-w.a { left:var(--pad); right:auto; transform:translateY(calc(-100% - var(--fh) / 2 - 10px - var(--e) * (50vh - var(--fh) / 2))); }
+  .lx-zoom-w.b { left:auto; right:var(--pad); transform:translateY(calc(var(--fh) / 2 + 6px + var(--e) * (50vh - var(--fh) / 2))); }
 }
 @media (max-width:640px) {
-  .lodge .site-wrap { padding:0 16px; }
-  .lodge .site-header-row { height:66px; }
+  .lodge { --nav-h:64px; }
+  .lodge .site-header { padding-top:12px; }
+  .lodge .site-header .site-header-row { height:52px; gap:8px; }
+  .lodge .site-header .site-logo { padding:0 16px 0 8px; }
   .lodge .site-logo img { width:32px; height:32px; }
-  .lodge .site-logo { font-size:17px; }
-  .lodge .site-nav .site-nav-cta { padding:10px 16px; font-size:13px; }
-  .lx-title { font-size:clamp(36px,10.5vw,46px); }
-  .lx-lead { font-size:15px; margin-bottom:24px; }
-  .lx-bar { grid-template-columns:1fr 1fr; border-radius:18px; }
-  .lx-bar > div { padding:8px 10px; gap:10px; }
-  .lx-bar svg { width:20px; height:20px; }
-  .lx-bar b { font-size:13px; white-space:normal; }
-  .lx-perks { grid-template-columns:1fr; gap:10px; }
+  .lodge .site-logo { font-size:16px; }
+  .lodge .site-logo small { display:none; }
+  .lodge .site-nav .site-nav-cta { padding:0 14px 0 16px; font-size:13.5px; }
+  .lodge .site-wrap.lx-hero-copy { padding-bottom:32px; }
+  .lodge .lx-title { font-size:clamp(46px, 13vw, 60px); }
+  .lx-eyebrow { font-size:11px; letter-spacing:.16em; }
+  .lx-hero-foot { flex-direction:column; align-items:flex-start; gap:22px; }
+  .lx-bar { grid-template-columns:1fr 1fr; }
+  .lx-bar > div { padding:18px 14px 18px; }
+  .lx-bar > div:nth-child(odd) { padding-left:0; }
+  .lx-bar b { font-size:16px; }
+  .lx-statement p { text-align:left; }
+  .lx-perks { grid-template-columns:1fr; gap:0; }
+  .lx-perks > div { flex-direction:row; align-items:flex-start; gap:16px; padding:18px 0; border-left:0; border-top:1px solid var(--line); }
+  .lx-perks > div:first-child { border-top:0; }
   .lodge .room-list { grid-template-columns:1fr; gap:16px; }
   .lodge .toolbar-selects { width:100%; }
-  .lodge .toolbar-selects select { flex:1; min-width:0; height:44px; }
+  .lodge .toolbar-selects select { flex:1; min-width:0; height:46px; }
   .lodge .seg button { min-height:40px; }
-  .lodge .loc-tabs button { min-height:44px; }
+  .lodge .loc-tabs button { min-height:46px; }
   .lodge .toolbar-count { margin-left:0; }
   .lodge .cmp { min-height:40px; }
-  .lodge .steps { grid-template-columns:1fr; }
-  .lx-stats { padding:18px 0; }
-  .lx-stats > div { padding:4px 12px; gap:10px; }
-  .lx-stats b { font-size:19px; }
+  .lodge .steps { grid-template-columns:1fr; gap:0; }
+  .lodge .steps li { padding:22px 0; border-left:0; border-top:1px solid rgba(255,255,255,.14); }
+  .lodge .steps h3 { margin-top:14px; }
+  .lx-stats { grid-template-columns:1fr 1fr; }
+  .lx-stats > div { padding:4px 14px; gap:16px; }
+  .lx-stats > div:nth-child(odd) { border-left:0; padding-left:0; }
   .lodge .foot-grid { grid-template-columns:1fr; }
-  .lodge main.dpage { padding:20px 16px 32px; }
+  .lodge main.dpage { padding:20px var(--pad) 32px; }
   .lodge .dhead { flex-direction:column; align-items:flex-start; }
   .lodge .dgallery { border-radius:var(--r-md); }
   .lodge .flist { grid-template-columns:1fr; }
@@ -330,6 +445,8 @@ html:has(.lodge), body:has(.lodge) { background:#fbf6f3; }
 .lodge.adm .adm-menu-btn { border-color:var(--line); color:var(--brand); box-shadow:var(--shadow); }
 .lodge.adm .adm-menu-btn:hover { background:var(--brand-soft); border-color:var(--brand-soft); }
 .lodge.adm .adm-menu-btn .adm-dot { background:var(--clay); box-shadow:0 0 0 2px #fff; }
+.lodge.adm .adm-stickybar { background:var(--bg); border-bottom-color:var(--line); }
+.lodge.adm .adm-stickybar strong { font-family:var(--display); font-weight:800; color:var(--text); }
 .lodge.adm .adm-nav button { padding:11px 12px; }
 .lodge.adm .adm-side .site-logo small { display:none; }
 .lodge.adm .adm-side .site-logo { font-size:18px; white-space:nowrap; }
@@ -359,14 +476,14 @@ html:has(.lodge), body:has(.lodge) { background:#fbf6f3; }
 .lodge.adm .btn-line { border-color:var(--line-2); color:var(--brand); background:var(--surface); }
 .lodge.adm .btn-line:hover { background:var(--brand-soft); border-color:var(--brand-soft); color:var(--brand); }
 .lodge.adm .adm-toast { background:var(--brand); color:#fff; border-radius:var(--r-sm); box-shadow:var(--shadow-lg); }
-.lodge.adm .adm-toast button { color:#F3B6B6; }
+.lodge.adm .adm-toast button { color:var(--clay); }
 
 .lodge.adm .adm-stats, .lodge.adm .adm-panel { background:var(--surface); border:1px solid var(--line); border-radius:var(--r-md); box-shadow:var(--shadow); }
 .lodge.adm .adm-stats div + div, .lodge.adm .adm-stats div:nth-child(n+3) { border-color:var(--line); }
 .lodge.adm .adm-stats dt, .lodge.adm .adm-stats small { color:var(--muted); }
 .lodge.adm .adm-stats dt { font-weight:600; }
 .lodge.adm .adm-stats dd { font:800 30px var(--display); letter-spacing:-.02em; color:var(--text); }
-.lodge.adm .adm-stats dd.ok { color:var(--ok); }
+.lodge.adm .adm-stats dd.ok { color:var(--text); }
 .lodge.adm .adm-stats dd.late { color:var(--danger); }
 .lodge.adm .adm-panel-head h2 { font-size:20px; }
 .lodge.adm .adm-link { color:var(--clay-2); font-weight:700; }
@@ -380,9 +497,9 @@ html:has(.lodge), body:has(.lodge) { background:#fbf6f3; }
 .lodge.adm .adm-room small { color:var(--muted); }
 .lodge.adm .adm-room img { border-radius:10px; background:var(--sand); }
 .lodge.adm .adm-switch { color:var(--muted); font-weight:600; }
-.lodge.adm .adm-switch i { background:#e6d6cf; }
-.lodge.adm .adm-switch.on { color:var(--ok); }
-.lodge.adm .adm-switch.on i { background:var(--ok); }
+.lodge.adm .adm-switch i { background:var(--sand-2); }
+.lodge.adm .adm-switch.on { color:var(--text); }
+.lodge.adm .adm-switch.on i { background:var(--clay); }
 .lodge.adm .adm-icon { border-radius:var(--r-sm); color:var(--muted); }
 .lodge.adm .adm-icon:hover { background:var(--bg); color:var(--text); }
 .lodge.adm .adm-icon.danger:hover { background:var(--danger-soft); color:var(--danger); }
@@ -436,22 +553,157 @@ html:has(.lodge), body:has(.lodge) { background:#fbf6f3; }
   .lodge.adm .adm-head h1 { font-size:28px; }
 }
 
+/* ===== Dashboard admin: gaya editorial yang sama dengan website =====
+   Judul besar tipis, tanggal sebagai label bertitik, angka besar di kolom bergaris tipis,
+   panel putih bergaris halus tanpa bayangan tebal, dan tombol kapsul terakota. */
+.lodge.adm .adm-head { align-items:flex-end; margin-bottom:clamp(26px, 3vw, 40px); }
+.lodge.adm .adm-head p { display:inline-flex; align-items:center; gap:10px; margin:0 0 10px; font-size:12px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--text-2); }
+.lodge.adm .adm-head p::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--clay); }
+.lodge.adm .adm-head h1 { font-size:clamp(40px, 4.6vw, 72px); line-height:.95; letter-spacing:-.05em; }
+.lodge.adm .adm-title { overflow:hidden; padding-bottom:.08em; margin-bottom:-.08em; }
+.lodge.adm .adm-title span { display:inline-block; }
+.lodge.adm .adm-head-title { align-items:flex-end; gap:18px; }
+.lodge.adm .adm-menu-btn { width:52px; height:52px; border-radius:50%; border-color:var(--line); background:var(--surface); color:var(--text); box-shadow:none; }
+.lodge.adm .adm-menu-btn:hover { background:var(--text); border-color:var(--text); color:#fff; }
+.lodge.adm .adm-menu-btn .adm-dot { top:10px; right:10px; }
+.lodge.adm .adm-stickybar { background:rgba(250,247,243,.82); -webkit-backdrop-filter:saturate(1.6) blur(18px); backdrop-filter:saturate(1.6) blur(18px); }
+.lodge.adm .adm-stickybar .adm-menu-btn { width:40px; height:40px; }
+.lodge.adm .adm-stickybar strong { font-weight:600; letter-spacing:-.02em; }
+
+/* angka ringkasan: besar & tipis, kolom bergaris tegak (tanpa kotak) */
+.lodge.adm .adm-stats { background:transparent; border:0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); border-radius:0; box-shadow:none; }
+.lodge.adm .adm-stats > div { padding:22px 24px 24px; }
+.lodge.adm .adm-stats > div:first-child { padding-left:0; }
+.lodge.adm .adm-stats dt { font-size:12.5px; font-weight:500; }
+.lodge.adm .adm-stats dd { margin:14px 0 10px; font:400 clamp(34px, 3.4vw, 54px)/1 var(--display); letter-spacing:-.055em; }
+.lodge.adm .adm-stats small { font-size:12.5px; }
+
+/* panel putih bergaris halus */
+.lodge.adm .adm-panel { border-radius:var(--r-lg); box-shadow:none; }
+.lodge.adm .adm-panel-head h2 { font-size:clamp(22px, 2vw, 28px); font-weight:500; letter-spacing:-.04em; }
+.lodge.adm .adm-link { color:var(--clay-2); font-weight:600; }
+.lodge.adm .adm-table th { font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; }
+.lodge.adm .adm-room b, .lodge.adm .adm-due b, .lodge.adm .bill-who b, .lodge.adm .bill-due b, .lodge.adm .adm-history b { font-weight:600; }
+.lodge.adm .adm-room img { border-radius:12px; }
+
+/* tombol kapsul: utama terakota, kedua putih bergaris tipis */
+.lodge.adm .btn { border-radius:999px; font-weight:600; }
+.lodge.adm .btn-dark { background:var(--clay); color:#fff; }
+.lodge.adm .btn-dark:hover { background:var(--clay-2); }
+.lodge.adm .btn-line { background:var(--surface); border-color:var(--line); color:var(--text); }
+.lodge.adm .btn-line:hover { background:var(--surface); border-color:var(--line-2); color:var(--text); }
+.lodge.adm .adm-toast { background:var(--night); border-radius:999px; }
+.lodge.adm .adm-toast button { color:var(--clay); }
+.lodge.adm .pay-period { border-color:var(--line); box-shadow:none; }
+.lodge.adm .pay-period strong { font-weight:600; letter-spacing:-.02em; }
+.lodge.adm .adm-alert { border:1px solid #f4cdbb; border-radius:var(--r-md); }
+.lodge.adm .adm-loc h3 { font-size:clamp(22px, 2vw, 28px); font-weight:500; letter-spacing:-.04em; }
+.lodge.adm .adm-fieldset legend { font-weight:600; }
+.lodge.adm .adm-form input, .lodge.adm .adm-form select, .lodge.adm .adm-form textarea, .lodge.adm .adm-rules input { border-radius:var(--r-sm); background:var(--surface); }
+.lodge.adm .adm-form input:focus, .lodge.adm .adm-form select:focus, .lodge.adm .adm-form textarea:focus, .lodge.adm .adm-rules input:focus {
+  border-color:var(--clay); box-shadow:0 0 0 4px rgba(206,79,47,.14); }
+
+/* laci menu: huruf lebih besar, menu aktif ditandai titik terakota */
+.lodge.adm .adm-nav button { font-size:15px; font-weight:500; }
+.lodge.adm .adm-nav button.is-active { color:var(--text); font-weight:600; }
+.lodge.adm .adm-nav button.is-active svg { color:var(--clay); }
+@media (hover:hover) {
+  .lodge.adm .adm-nav button:hover, .lodge.adm .adm-side-foot a:hover, .lodge.adm .adm-side-foot button:hover,
+  .lodge.adm .adm-nav button:hover svg, .lodge.adm .adm-side-foot a:hover svg, .lodge.adm .adm-side-foot button:hover svg { color:var(--clay-2); }
+}
+
+@media (max-width:760px) {
+  .lodge.adm .adm-head { align-items:stretch; }
+  .lodge.adm .adm-head-title { align-items:center; gap:14px; }
+  .lodge.adm .adm-head-actions .btn { align-self:flex-start; }
+  .lodge.adm .adm-head h1 { font-size:40px; }
+  .lodge.adm .adm-stats > div { padding:18px 14px; }
+  .lodge.adm .adm-stats > div:nth-child(odd) { padding-left:0; }
+  .lodge.adm .adm-stats dd { font-size:32px; }
+}
+
+/* ===== Intro pembuka (logo besar → tirai terangkat → website) ===== */
+html.intro-lock, html.intro-lock body { overflow:hidden; }
+.lx-intro { position:fixed; inset:0; z-index:100; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.lx-intro-layer { position:absolute; inset:0; }
+.lx-intro-brand { background:#1d1113; }
+.lx-intro-main { display:grid; place-items:center; background:#faf7f3 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cpath d='M32 28v8M28 32h8' stroke='%231f1718' stroke-opacity='.09' stroke-width='1'/%3E%3C/svg%3E"); }
+.lx-intro-content { display:flex; flex-direction:column; align-items:center; text-align:center; padding:24px; }
+.lx-intro-mark { width:clamp(104px, 22vw, 150px); height:auto; overflow:visible; }
+.lx-intro-name { margin:30px 0 0; font:500 clamp(40px, 9vw, 88px)/1 'Plus Jakarta Sans', system-ui, sans-serif; letter-spacing:-.055em; color:#1f1718; overflow:hidden; padding-bottom:.1em; }
+.lx-intro-name span { display:inline-block; }
+.lx-intro-tag { margin:14px 0 0; font:600 12px 'Plus Jakarta Sans', system-ui, sans-serif; letter-spacing:.22em; text-transform:uppercase; color:#4d4446; }
+.lx-intro-line { display:block; width:64px; height:3px; margin-top:18px; border-radius:3px; background:#CE4F2F; }
+.lx-counter { position:absolute; left:max(4vw, 20px); bottom:clamp(22px, 4vw, 48px); text-align:left; transition:opacity .4s ease; }
+.lx-counter small { display:block; margin-bottom:6px; font:600 11px 'Plus Jakarta Sans', system-ui, sans-serif; letter-spacing:.22em; text-transform:uppercase; color:#8b8183; }
+.lx-odo { display:flex; font:400 clamp(44px, 6vw, 84px)/1 'Plus Jakarta Sans', system-ui, sans-serif; letter-spacing:-.04em; color:#1f1718; font-variant-numeric:tabular-nums; }
+.lx-odo-col { display:block; height:1em; overflow:hidden; }
+.lx-odo-col > span { display:flex; flex-direction:column; transform:translateY(calc(var(--d) * -1em)); transition:transform .45s cubic-bezier(.16,1,.3,1); }
+.lx-odo-col i { display:block; height:1em; font-style:normal; }
+.lx-intro.is-out .lx-counter { opacity:0; }
+
+@keyframes lxIntroRoof { from { opacity:0; transform:translateY(-70%) rotate(-6deg); } }
+@keyframes lxIntroBody { from { opacity:0; transform:translateY(45%) scale(.86); } }
+@keyframes lxIntroMark { from { transform:scale(.82); } }
+@keyframes lxIntroChar { from { opacity:0; transform:translateY(105%); } }
+@keyframes lxIntroLine { from { transform:scaleX(0); } }
+
+.lx-intro-roof { transform-box:fill-box; transform-origin:50% 100%; animation:lxIntroRoof .75s cubic-bezier(.34,1.45,.64,1) .15s backwards; }
+.lx-intro-body { transform-box:fill-box; transform-origin:50% 100%; animation:lxIntroBody .7s cubic-bezier(.22,.8,.24,1) .3s backwards; }
+.lx-intro-mark { animation:lxIntroMark 1.6s cubic-bezier(.22,.8,.24,1) backwards; }
+.lx-intro-name span { animation:lxIntroChar .6s cubic-bezier(.22,.8,.24,1) backwards; animation-delay:calc(.7s + var(--i) * 35ms); }
+.lx-intro-tag { animation:lxFade .7s ease 1.2s backwards; }
+.lx-intro-line { animation:lxIntroLine .7s cubic-bezier(.22,.8,.24,1) 1.25s backwards; }
+
+/* keluar: isi naik & memudar, lapisan terang terangkat, lalu lapisan gelap menyusul */
+.lx-intro-content { transition:transform .6s cubic-bezier(.55,0,.25,1), opacity .45s ease; }
+.lx-intro-layer { transition:transform .8s cubic-bezier(.76,0,.24,1); }
+.lx-intro.is-out { cursor:default; pointer-events:none; }
+.lx-intro.is-out .lx-intro-content { transform:translateY(-48px) scale(.96); opacity:0; }
+.lx-intro.is-out .lx-intro-main { transform:translateY(-100%); transition-delay:.08s; }
+.lx-intro.is-out .lx-intro-brand { transform:translateY(-100%); transition-delay:.22s; }
+
+/* animasi beranda ditahan selama intro, lalu berjalan tepat saat tirai terangkat */
+html.intro-playing .lodge, html.intro-playing .lx-hero-copy > *, html.intro-playing .lx-bar { animation-play-state:paused; }
+
 /* ===== Animasi halus =====
    Satu kurva gerak untuk semuanya; dimatikan bila pengguna memilih "kurangi animasi". */
 @keyframes lxRise { from { opacity:0; transform:translateY(26px); } }
+@keyframes lxRiseBig { from { opacity:0; transform:translateY(60px); } }
 @keyframes lxFade { from { opacity:0; } }
 @keyframes lxDrop { from { opacity:0; transform:translateY(-8px); } }
 @keyframes lxToast { from { opacity:0; transform:translateY(16px) scale(.96); } }
 
+@keyframes lxSheen { 0%, 62% { translate:-130% 0; } 100% { translate:130% 0; } }
+@keyframes lxMarq { to { transform:translateX(-50%); } }
+@keyframes lxNudge { 0%, 100% { translate:0 0; } 50% { translate:0 5px; } }
+@keyframes lxPulse { 0% { box-shadow:0 0 0 0 rgba(255,255,255,.7); } 100% { box-shadow:0 0 0 9px rgba(255,255,255,0); } }
+@keyframes lxTitleUp { from { transform:translateY(105%); } }
+
 @media (prefers-reduced-motion:no-preference) {
+  /* gaya referensi: kilau berkala di tombol utama, panah petunjuk bergoyang, titik "tersedia" berdenyut */
+  :is(.lx-btn-accent, .lx-bar-btn, .site-nav-cta, .lodge.adm .btn-dark)::after { animation:lxSheen 3.6s ease-in-out infinite; }
+  .lx-scroll span { display:inline-block; animation:lxNudge 1.8s var(--ease) infinite; }
+  .lodge .rcard .avail.yes::before { animation:lxPulse 1.8s var(--ease) infinite; }
+  .lx-marquee-track { animation:lxMarq 45s linear infinite; }
+  .lx-marquee:hover .lx-marquee-track { animation-play-state:paused; }
+  .lodge.adm .adm-title span { animation:lxTitleUp .8s var(--ease) both; }
+  /* navbar: meluncur ke atas sambil memudar & mengecil; kapsul menu menyusul sedikit di belakang logo */
+  .lodge .site-header :is(.site-logo, .site-nav-links, .site-nav-cta) { transition:translate .55s var(--ease), opacity .4s var(--ease), scale .55s var(--ease), color .3s var(--ease), background-color .45s var(--ease), border-color .45s var(--ease); }
+  .lodge .site-header .site-nav-links { transition-delay:.05s; }
+  .lodge .site-header .site-nav-cta { transition-delay:.1s; }
+  /* saat menghilang: meluncur dulu, baru memudar di akhir agar gerakan naiknya terlihat */
+  .lodge .site-header.is-hidden :is(.site-logo, .site-nav-links, .site-nav-cta) { transition:translate .6s cubic-bezier(.55,0,.25,1), opacity .5s ease-in .1s, scale .6s var(--ease), color .3s var(--ease); }
+  .lodge .site-header.is-hidden .site-nav-links { transition-delay:.05s, .15s, .05s, 0s; }
+  .lodge .site-header.is-hidden .site-nav-cta { transition-delay:.1s, .2s, .1s, 0s; }
   html:has(.lodge) { scroll-behavior:smooth; }
   .lodge { animation:lxFade .5s var(--ease) both; }
 
   /* hero masuk bertahap */
-  .lx-hero-copy > * { animation:lxRise .9s var(--ease) backwards; }
-  .lx-hero-copy > :nth-child(2) { animation-delay:.08s; }
-  .lx-hero-copy > :nth-child(3) { animation-delay:.16s; }
-  .lx-hero-copy > :nth-child(4) { animation-delay:.24s; }
+  .lx-hero-copy > * { animation:lxRise 1.1s var(--ease) backwards; }
+  .lx-hero-copy > .lx-title { animation-name:lxRiseBig; animation-delay:.06s; }
+  .lx-hero-copy > :nth-child(3) { animation-delay:.2s; }
+  .lx-hero-copy > :nth-child(4) { animation-delay:.32s; }
   .lx-bar { animation:lxRise 1s var(--ease) .3s backwards; }
 
   /* muncul saat digulir */
@@ -461,13 +713,16 @@ html:has(.lodge), body:has(.lodge) { background:#fbf6f3; }
   .lodge .rcard-photo img { opacity:0; transition:opacity .7s var(--ease), transform .9s var(--ease); }
   .lodge .rcard-photo img.is-loaded { opacity:1; }
   .lodge .rcard:hover .rcard-photo img { transform:scale(1.06); }
-  .lodge .rcard { transition:transform .5s var(--ease), box-shadow .5s var(--ease); }
-  .lodge .rcard:hover { transform:translateY(-4px); box-shadow:var(--shadow-lg); }
-  .lodge .loc-item, .lodge .steps li, .lx-perks > div { transition:transform .5s var(--ease), box-shadow .5s var(--ease); }
-  .lodge .loc-item:hover, .lodge .steps li:hover, .lx-perks > div:hover { transform:translateY(-3px); box-shadow:var(--shadow-lg); }
+  .lodge .rcard-photo img { transition:opacity .7s var(--ease), transform 1.2s var(--ease); }
+  .lodge .rcard { transition:transform .6s var(--ease); }
+  .lodge .rcard:hover { transform:translateY(-4px); }
+  .lodge .loc-item { transition:transform .6s var(--ease), border-color .4s var(--ease); }
+  .lodge .loc-item:hover { transform:translateY(-3px); border-color:var(--line-2); }
+  .lx-perks svg { transition:background-color .4s var(--ease), color .4s var(--ease), border-color .4s var(--ease); }
+  .lx-perks > div:hover svg { background:var(--clay); border-color:var(--clay); color:#fff; }
   .lodge .dg-img { animation:lxFade .55s var(--ease); }
 
-  .lodge .btn:active, .lx-btn-accent:active, .lx-btn-dark:active, .lx-bar-btn:active, .lodge .site-nav-cta:active, .lodge .loc-foot a:active,
+  .lodge .btn:active, .lx-btn-accent:active, .lx-btn-dark:active, .lx-bar-btn:active, .lodge .site-nav-cta:active, .lodge .loc-foot a:active, .lodge .site-nav-links a:active,
   .lodge .loc-tabs button:active, .lodge .seg button:active, .lodge .dg-nav:active, .lodge .dthumbs button:active, .lodge .cmp:active,
   .lodge.adm .adm-nav button:active, .lodge.adm .adm-icon:active, .lodge.adm .adm-link:active { scale:.96; }
   .lodge .dthumbs button { transition:opacity .3s var(--ease), border-color .3s var(--ease), scale .25s var(--ease); }
@@ -499,7 +754,8 @@ html:has(.lodge), body:has(.lodge) { background:#fbf6f3; }
   .lodge.adm .adm-side { transition:transform .55s var(--ease), visibility 0s linear .55s; }
   .lodge.adm .adm-side.is-open { transition:transform .55s var(--ease), visibility 0s; }
   .lodge.adm { transition:padding-left .55s var(--ease); }
-  .lodge.adm .adm-main { transition:translate .55s var(--ease); }
+  .lodge.adm .adm-stickybar { transition:transform .4s var(--ease), visibility 0s linear .4s, left .55s var(--ease); }
+  .lodge.adm .adm-stickybar.is-shown { transition:transform .4s var(--ease), visibility 0s, left .55s var(--ease); }
   .lodge.adm .adm-side :is(.adm-side-top, .adm-side-label, .adm-nav button, .adm-side-foot > *) {
     opacity:0; transform:translateX(-18px); transition:opacity .35s var(--ease), transform .45s var(--ease), background-color .3s var(--ease), color .3s var(--ease); }
   .lodge.adm .adm-side.is-open :is(.adm-side-top, .adm-side-label, .adm-nav button, .adm-side-foot > *) {
@@ -512,4 +768,12 @@ html:has(.lodge), body:has(.lodge) { background:#fbf6f3; }
 @media (prefers-reduced-motion:reduce) {
   .lodge, .lodge *, .lodge *::before, .lodge *::after { animation:none !important; transition:none !important; }
   .lx-hero-media img { opacity:1; transform:none; }
+  .lx-statement span { opacity:1; filter:none; }
+  /* tanpa animasi: bagian yang menempel jadi biasa */
+  .lx-hero, .lx-zoom { height:auto; }
+  .lx-hero-pin { position:relative; }
+  .lx-zoom-pin { position:relative; height:80vh; }
+  .lx-floats, .lx-drift { display:none; }
+  .lx-marquee-track { flex-wrap:wrap; width:auto; }
+  .lx-marquee span + span { display:none; }
 }

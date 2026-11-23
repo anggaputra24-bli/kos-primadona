@@ -23,6 +23,49 @@ const prefersReducedMotion = () => {
   try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return true; }
 };
 
+// Kemajuan gulir sebuah bagian (0 → 1) dikirim ke CSS sebagai --p, dan versi yang dihaluskan sebagai --e.
+// mode 'pin'  : bagian tinggi dengan isi yang menempel; 0 saat bagian mulai di atas layar, 1 saat isinya akan lepas.
+// mode 'pass' : 0 saat bagian baru masuk dari bawah layar, 1 saat sudah keluar di atas.
+const easeInOutCubic = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+function useScrollProgress(ref, mode = 'pin', speed = 1) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (prefersReducedMotion()) { el.style.setProperty('--p', '0'); el.style.setProperty('--e', '0'); return; }
+    // Nilai yang tampil "mengejar" posisi gulir sedikit demi sedikit tiap frame (bukan melompat),
+    // sehingga putaran roda mouse yang bertahap pun terlihat mulus.
+    let target = 0, current = -1, frame = 0;
+    const measure = () => {
+      const r = el.getBoundingClientRect(), vh = window.innerHeight;
+      const raw = mode === 'pin' ? -r.top / Math.max(r.height - vh, 1) : (vh - r.top) / (vh + r.height);
+      return Math.min(Math.max(raw * speed, 0), 1);
+    };
+    const paint = v => {
+      el.style.setProperty('--p', v.toFixed(4));
+      el.style.setProperty('--e', easeInOutCubic(v).toFixed(4));
+    };
+    const step = () => {
+      const diff = target - current;
+      current = Math.abs(diff) < 0.0004 ? target : current + diff * 0.14;
+      paint(current);
+      frame = current === target ? 0 : requestAnimationFrame(step);
+    };
+    const onScroll = () => {
+      target = measure();
+      if (current < 0) { current = target; paint(current); return; } // posisi awal: langsung tepat
+      if (!frame) frame = requestAnimationFrame(step);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, [ref, mode, speed]);
+}
+
 // Angka yang menghitung naik/turun dengan halus setiap kali nilainya berubah.
 function CountUp({ value, format = n => n, duration = 900 }) {
   const target = Number(value) || 0;
@@ -73,6 +116,7 @@ const Icon = {
   pin: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z" /><circle cx="12" cy="9.5" r="2.5" /></svg>,
   check: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>,
   arrow: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>,
+  chevron: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>,
   back: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>,
   close: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>,
   chat: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19.6Z" /></svg>,
@@ -85,28 +129,115 @@ const Icon = {
   leaf: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c0-8 6-14 15-14 0 9-6 15-14 15" /><path d="M5 19 14 10" /></svg>,
 };
 
+// Navbar bersembunyi ke atas saat menggulir ke bawah, dan muncul lagi saat menggulir ke atas
+// (atau saat dekat bagian paling atas halaman).
+function useHideOnScroll() {
+  const [hidden, setHidden] = useState(false);
+  const [overHero, setOverHero] = useState(true);
+  useEffect(() => {
+    let lastY = window.scrollY, frame = 0;
+    const update = () => {
+      frame = 0;
+      const y = window.scrollY, delta = y - lastY;
+      setOverHero(y < window.innerHeight * 0.18);
+      if (y < 120) setHidden(false);
+      else if (delta > 6) setHidden(true);
+      else if (delta < -6) setHidden(false);
+      if (Math.abs(delta) > 6 || y < 120) lastY = y;
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(update); };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { window.removeEventListener('scroll', onScroll); cancelAnimationFrame(frame); };
+  }, []);
+  return { hidden, overHero };
+}
+
 function Header() {
+  const { hidden, overHero } = useHideOnScroll();
   return (
-    <header className="site-header">
+    <header className={`site-header${hidden ? ' is-hidden' : ''}${overHero ? ' is-top' : ''}`}>
       <div className="site-wrap site-header-row">
         <Link className="site-logo" to="/">
           <img src="/primadona-mark.svg" alt="" />
           <span>Kos Primadona<small>Kos bulanan di Jember</small></span>
         </Link>
         <nav className="site-nav">
-          <a href="/#kamar">Kamar</a>
-          <a href="/#lokasi">Lokasi</a>
-          <a href="/#cara-sewa">Cara Sewa</a>
-          <a className="site-nav-cta" href="/#kamar">Cari kamar</a>
+          <div className="site-nav-links">
+            <a href="/#kamar">Kamar</a>
+            <a href="/#lokasi">Lokasi</a>
+            <a href="/#cara-sewa">Cara Sewa</a>
+          </div>
+          <a className="site-nav-cta" href="/#kamar"><i aria-hidden="true" />Cari kamar{Icon.chevron}</a>
         </nav>
       </div>
     </header>
   );
 }
 
+// Label bagian bernomor: "● 01 — Daftar kamar"
+function SecIndex({ n, children }) {
+  return <p className="sec-index"><i aria-hidden="true" /><span>{n}</span><em aria-hidden="true">—</em>{children}</p>;
+}
+
+// Kalimat besar yang "menyala" kata demi kata mengikuti posisi gulir.
+function ScrollStatement({ text, photos = [] }) {
+  const ref = React.useRef(null);
+  const sectionRef = React.useRef(null);
+  useScrollProgress(sectionRef, 'pass');
+  const words = text.split(' ');
+  const [lit, setLit] = useState(() => (prefersReducedMotion() ? words.length : 0));
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || prefersReducedMotion()) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const r = el.getBoundingClientRect(), vh = window.innerHeight;
+      // mulai menyala saat kalimat masuk di 85% tinggi layar, penuh saat sampai 35%
+      const p = Math.min(Math.max((vh * 0.85 - r.top) / (vh * 0.5), 0), 1);
+      setLit(Math.round(p * words.length));
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(update); };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); cancelAnimationFrame(frame); };
+  }, [words.length]);
+  return (
+    <section className="lx-statement" aria-label="Tentang Kos Primadona" ref={sectionRef}>
+      <div className="lx-drift" aria-hidden="true">
+        {photos.map((src, i) => <img key={i} className={`d${i + 1}`} src={src} alt="" loading="lazy" onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />)}
+      </div>
+      <p ref={ref}>
+        {words.map((w, i) => <span key={i} className={i < lit ? 'on' : ''}>{w} </span>)}
+      </p>
+    </section>
+  );
+}
+
 const HERO_PHOTO = 'https://images.unsplash.com/photo-1449844908441-8829872d2607?auto=format&fit=crop&w=1800&q=70';
 
 function Home() {
+  const heroRef = React.useRef(null);
+  const zoomRef = React.useRef(null);
+  useScrollProgress(heroRef, 'pin');
+  useScrollProgress(zoomRef, 'pin', 1.25);
+  // "Kos [foto] Primadona": kedua kata beda panjang, jadi seluruh susunan digeser (--shift)
+  // agar titik tengah dari ujung "Kos" sampai ujung "Primadona" tepat di tengah layar.
+  useEffect(() => {
+    const el = zoomRef.current;
+    if (!el) return;
+    const measure = () => {
+      const a = el.querySelector('.lx-zoom-w.a'), b = el.querySelector('.lx-zoom-w.b');
+      const side = window.matchMedia('(min-width: 761px)').matches;
+      el.style.setProperty('--shift', side && a && b ? `${(b.offsetWidth - a.offsetWidth) / 2}px` : '0px');
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    document.fonts?.ready.then(measure).catch(() => {});
+    return () => window.removeEventListener('resize', measure);
+  }, []);
   const [locations, setLocations] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [locationId, setLocationId] = useState(1);
@@ -120,6 +251,8 @@ function Home() {
   useEffect(() => {
     if (!loading && hash) document.querySelector(hash)?.scrollIntoView();
   }, [loading, hash]);
+  // Masuk ke beranda tanpa tujuan "#..." (mis. klik logo dari halaman detail) → mulai dari paling atas.
+  useEffect(() => { if (!hash) window.scrollTo({ top: 0, behavior: 'instant' }); }, []);
 
   useEffect(() => {
     Promise.all([api('/api/lokasi'), api('/api/kamar')]).then(([l, r]) => {
@@ -140,38 +273,60 @@ function Home() {
   return (
     <div className="site lodge">
       <Header />
-      <section className="lx-hero">
+      <section className="lx-hero" ref={heroRef}>
+        <div className="lx-hero-pin">
         <div className="lx-hero-media" aria-hidden="true">
           <img src={HERO_PHOTO} alt="" onLoad={e => e.currentTarget.classList.add('is-loaded')} />
         </div>
+        <div className="lx-floats" aria-hidden="true">
+          {rooms.slice(0, 4).map((r, i) => <img key={r.id} className={`lx-float f${i + 1}`} src={r.foto} alt="" loading="lazy" onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />)}
+        </div>
         <div className="site-wrap lx-hero-copy">
           <p className="lx-eyebrow">Kos bulanan · Jember, Jawa Timur</p>
-          <h1 className="lx-title">Kamar Nyaman.<span>Hidup Lebih <em>Tenang</em>.</span></h1>
-          <p className="lx-lead">Dua bangunan di Jember dengan kamar berperabot, harga bulanan yang jelas, dan pengelola yang bisa dihubungi langsung.</p>
-          <a className="lx-btn-accent" href="#kamar">Lihat kamar {Icon.arrow}</a>
+          <h1 className="lx-title">Kamar Nyaman.<span>Hidup Lebih Tenang.</span></h1>
+          <div className="lx-hero-foot">
+            <p className="lx-lead">Dua bangunan di Jember dengan kamar berperabot, harga bulanan yang jelas, dan pengelola yang bisa dihubungi langsung.</p>
+            <a className="lx-btn-accent" href="#kamar"><i aria-hidden="true" />Lihat kamar{Icon.chevron}</a>
+          </div>
+          <a className="lx-scroll" href="#kamar" aria-hidden="true" tabIndex={-1}><span>+</span>Gulir untuk menjelajah</a>
         </div>
+        </div>
+      </section>
+      <section className="lx-under-hero">
         <div className="site-wrap">
           <div className="lx-bar">
             <div>{Icon.pin}<p><small>Lokasi</small><b>Jember · {locations.length || '–'} bangunan</b></p></div>
             <div>{Icon.home}<p><small>Jenis sewa</small><b>Kos bulanan</b></p></div>
             <div>{Icon.tag}<p><small>Harga mulai</small><b>{minPrice ? `Rp${rupiah(minPrice)}` : '–'}/bulan</b></p></div>
             <div>{Icon.key}<p><small>Kamar kosong</small><b>{loading ? '–' : <CountUp value={available.length} />} dari {rooms.length || '–'}</b></p></div>
-            <a className="lx-bar-btn" href="#kamar">Cari kamar {Icon.arrow}</a>
+            <a className="lx-bar-btn" href="#kamar"><i aria-hidden="true" />Cari kamar{Icon.chevron}</a>
           </div>
         </div>
       </section>
+      <ScrollStatement photos={rooms.slice(2, 6).map(r => r.foto)} text="Kamar berperabot, harga bulanan yang jelas, dan pengelola yang bisa dihubungi langsung, di dua lokasi strategis di Jember." />
       <section className="site-wrap lx-perks" aria-label="Keunggulan">
         <div data-reveal>{Icon.sofa}<p><b>Kamar berperabot</b><small>Kasur, lemari, dan fasilitas sesuai tiap kamar.</small></p></div>
         <div data-reveal style={{ '--i': 1 }}>{Icon.tag}<p><b>Harga jelas</b><small>Harga bulanan tertera di setiap kamar.</small></p></div>
         <div data-reveal style={{ '--i': 2 }}>{Icon.cap}<p><b>Dekat kampus</b><small>Dua lokasi strategis di Jember.</small></p></div>
         <div data-reveal style={{ '--i': 3 }}>{Icon.chat}<p><b>Langsung ke pengelola</b><small>Tanya dan atur survei lewat WhatsApp.</small></p></div>
       </section>
+      <section className="lx-zoom" ref={zoomRef} aria-label="Kos Primadona">
+        <div className="lx-zoom-pin">
+          <span className="lx-zoom-w a" aria-hidden="true">Kos</span>
+          <figure className="lx-zoom-fig">
+            {freeRoom && <img src={freeRoom.foto} alt="" loading="lazy" onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />}
+          </figure>
+          <span className="lx-zoom-w b" aria-hidden="true">Primadona</span>
+          <p className="lx-zoom-cap">{freeRoom ? `${freeRoom.nama_kamar} · ${locations.find(l => l.id === freeRoom.lokasi_id)?.nama_lokasi || 'Jember'}` : 'Kos Primadona, Jember'}</p>
+        </div>
+      </section>
       <main>
 
         <section className="site-section" id="kamar">
           <div className="site-wrap">
             <div className="sec-head" data-reveal>
-              <h2>Daftar kamar <span className="sec-leaf" aria-hidden="true">{Icon.leaf}</span></h2>
+              <SecIndex n="01">Daftar kamar</SecIndex>
+              <h2>Pilih kamar yang pas untukmu.</h2>
               <p>Pilih lokasi, lalu saring berdasarkan ketersediaan, harga, atau fasilitas.</p>
             </div>
 
@@ -217,7 +372,8 @@ function Home() {
         <section className="site-section alt" id="lokasi">
           <div className="site-wrap">
             <div className="sec-head" data-reveal>
-              <h2>Lokasi <span className="sec-leaf" aria-hidden="true">{Icon.leaf}</span></h2>
+              <SecIndex n="02">Lokasi</SecIndex>
+              <h2>Dua bangunan di Jember.</h2>
               <p>Dua bangunan, masing-masing dengan pengelola dan nomor WhatsApp sendiri.</p>
             </div>
             <div className="loc-grid">
@@ -246,10 +402,10 @@ function Home() {
           <div className="site-wrap">
             <div className="lx-guide" data-reveal>
               <div className="lx-guide-copy">
-                <p className="lx-eyebrow">Butuh panduan?</p>
-                <h2>Cara menyewa</h2>
+                <SecIndex n="03">Cara menyewa</SecIndex>
+                <h2>Tiga langkah sampai pindah.</h2>
                 <p>Tanpa formulir online. Semua dibicarakan langsung dengan pengelola.</p>
-                <a className="lx-btn-dark" href="#kamar">Lihat daftar kamar {Icon.arrow}</a>
+                <a className="lx-btn-dark" href="#kamar"><i aria-hidden="true" />Lihat daftar kamar{Icon.chevron}</a>
               </div>
               <ol className="steps">
                 <li data-reveal><span>01</span><h3>Pilih kamar</h3><p>Lihat foto, luas, fasilitas, dan harga tiap kamar di halaman detail.</p></li>
@@ -264,14 +420,21 @@ function Home() {
           <div className="lx-cta" data-reveal>
             <div className="lx-cta-media" aria-hidden="true">{freeRoom && <img src={freeRoom.foto} alt="" loading="lazy" onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />}</div>
             <div className="lx-cta-copy">
-              <p className="lx-eyebrow">Siap pindah?</p>
+              <SecIndex n="04">Siap pindah?</SecIndex>
               <h2>Kamar kosong sudah menunggu.</h2>
               <p>{loading ? 'Memuat ketersediaan…' : `${available.length} kamar siap ditempati di ${locations.length} lokasi. Tanyakan langsung ke pengelola.`}</p>
-              {mainWa && <a className="lx-btn-accent" href={`https://wa.me/${mainWa}`} target="_blank" rel="noreferrer">Tanya pengelola {Icon.arrow}</a>}
+              {mainWa && <a className="lx-btn-accent" href={`https://wa.me/${mainWa}`} target="_blank" rel="noreferrer"><i aria-hidden="true" />Tanya pengelola{Icon.chevron}</a>}
             </div>
           </div>
         </section>
 
+        <div className="lx-marquee" aria-hidden="true">
+          <div className="lx-marquee-track">
+            {[0, 1].map(k => (
+              <span key={k}>{['Kamar berperabot', 'AC', 'WiFi', 'Kamar mandi dalam', 'Kasur', 'Lemari', 'Meja belajar', 'Dekat kampus', 'Harga bulanan'].map(t => <React.Fragment key={t}><b>{t}</b><i>+</i></React.Fragment>)}</span>
+            ))}
+          </div>
+        </div>
         <section className="site-wrap lx-stats" aria-label="Ringkasan">
           <div>{Icon.bed}<p><b>{loading ? '–' : <CountUp value={rooms.length} />}</b><small>Total kamar</small></p></div>
           <div>{Icon.key}<p><b>{loading ? '–' : <CountUp value={available.length} />}</b><small>Kamar kosong</small></p></div>
@@ -561,6 +724,20 @@ function AdminAccessShortcut() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showCode, setShowCode] = useState(false);
+  // Menutup dengan animasi turun (jendela tetap ada sebentar dengan kelas is-closing).
+  const [closing, setClosing] = useState(false);
+  const closeTimer = React.useRef(0);
+  const close = () => {
+    // lepas fokus dari kolom kode agar Ctrl+Z bisa langsung membuka jendela lagi selama animasi menutup
+    if (document.activeElement instanceof HTMLElement && document.activeElement.closest('.access-card')) document.activeElement.blur();
+    if (prefersReducedMotion()) { setIsOpen(false); return; }
+    setClosing(true);
+    clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => { setIsOpen(false); setClosing(false); }, 320);
+  };
+  const closeRef = React.useRef(close);
+  closeRef.current = close;
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
   // Setiap kali jendela dibuka, kode kembali disembunyikan.
   useEffect(() => { if (isOpen) setShowCode(false); }, [isOpen]);
   // Waktu jendela dibuka, dicatat langsung (bukan lewat state) agar ketukan sisa tidak menutupnya.
@@ -574,14 +751,16 @@ function AdminAccessShortcut() {
       if (event.ctrlKey && !event.altKey && event.key.toLowerCase() === 'z' && !isEditing) {
         event.preventDefault();
         openedAt.current = Date.now();
+        clearTimeout(closeTimer.current); setClosing(false); setShowCode(false);
         setCode('');
         setError('');
         setIsOpen(true);
       }
-      if (event.key === 'Escape') setIsOpen(false);
+      if (event.key === 'Escape') closeRef.current();
     };
     const onOpenRequest = event => {
       openedAt.current = Date.now();
+      clearTimeout(closeTimer.current); setClosing(false); setShowCode(false);
       setCode('');
       setError(event.detail || '');
       setIsOpen(true);
@@ -599,6 +778,7 @@ function AdminAccessShortcut() {
         taps = 0;
         event.preventDefault();
         openedAt.current = Date.now();
+        clearTimeout(closeTimer.current); setClosing(false); setShowCode(false);
         setCode('');
         setError('');
         setIsOpen(true);
@@ -637,12 +817,12 @@ function AdminAccessShortcut() {
 
   if (!isOpen) return null;
   return (
-    <div className="access-overlay" onMouseDown={event => {
+    <div className={`access-overlay${closing ? ' is-closing' : ''}`} onMouseDown={event => {
       // Abaikan ketukan sisa (mis. ketukan logo ke-6) yang terjadi tepat setelah jendela terbuka.
-      if (event.target === event.currentTarget && Date.now() - openedAt.current > 600) setIsOpen(false);
+      if (event.target === event.currentTarget && Date.now() - openedAt.current > 600) close();
     }}>
       <form className="access-card" onSubmit={submit}>
-        <button className="access-close" type="button" aria-label="Tutup" onClick={() => setIsOpen(false)}>
+        <button className="access-close" type="button" aria-label="Tutup" onClick={close}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
         </button>
         <h2>Akses pengelola</h2>
@@ -727,7 +907,7 @@ function Admin() {
   const [tab, setTab] = useState('dashboard');
   // Menu samping berupa laci: tersembunyi di awal, meluncur keluar saat tombol menu ditekan.
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuBtnRef = React.useRef(null);
+  const openerRef = React.useRef(null); // tombol menu yang dipakai membuka laci (fokus kembali ke sini)
   const drawerRef = React.useRef(null);
   const openedByKeyboard = React.useRef(false);
   useEffect(() => {
@@ -742,10 +922,26 @@ function Admin() {
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = '';
       clearTimeout(t);
-      if (byKeyboard) menuBtnRef.current?.focus({ preventScroll: true });
+      if (byKeyboard) openerRef.current?.focus({ preventScroll: true });
     };
   }, [menuOpen]);
-  const chooseTab = key => { setTab(key); setMenuOpen(false); };
+  // Ganti menu lalu kembali ke atas halaman (menu bisa dibuka dari bilah atas saat sedang di bawah).
+  const chooseTab = key => {
+    if (key !== tab) window.scrollTo({ top: 0 });
+    setTab(key);
+    setMenuOpen(false);
+  };
+  const openMenu = e => { openerRef.current = e.currentTarget; openedByKeyboard.current = e.detail === 0; setMenuOpen(true); };
+  // Bilah atas yang menempel: muncul saat judul & tombol menu di atas sudah tergulir keluar layar.
+  const headRef = React.useRef(null);
+  const [scrolledPast, setScrolledPast] = useState(false);
+  useEffect(() => {
+    const el = headRef.current;
+    if (!el || !('IntersectionObserver' in window)) return;
+    const io = new IntersectionObserver(([entry]) => setScrolledPast(!entry.isIntersecting && entry.boundingClientRect.top < 0));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const [locations, setLocations] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [history, setHistory] = useState([]);
@@ -847,15 +1043,22 @@ function Admin() {
       </aside>
 
       <main className="adm-main">
-        <header className="adm-head">
+        <div className={`adm-stickybar${scrolledPast ? ' is-shown' : ''}`} inert={!scrolledPast}>
+          <button className="adm-menu-btn" onClick={openMenu} aria-label="Buka menu" aria-expanded={menuOpen} aria-controls="adm-drawer">
+            {AdIcon.menu}
+            {(needsAttention || me?.default_password) && <i className="adm-dot" aria-hidden="true" />}
+          </button>
+          <strong>{title}</strong>
+        </div>
+        <header className="adm-head" ref={headRef}>
           <div className="adm-head-title">
-            <button ref={menuBtnRef} className="adm-menu-btn" onClick={e => { openedByKeyboard.current = e.detail === 0; setMenuOpen(true); }} aria-label="Buka menu" aria-expanded={menuOpen} aria-controls="adm-drawer">
+            <button className="adm-menu-btn" onClick={openMenu} aria-label="Buka menu" aria-expanded={menuOpen} aria-controls="adm-drawer">
               {AdIcon.menu}
               {(needsAttention || me?.default_password) && <i className="adm-dot" aria-hidden="true" />}
             </button>
             <div>
               <p>{today}</p>
-              <h1>{title}</h1>
+              <h1 key={title} className="adm-title"><span>{title}</span></h1>
             </div>
           </div>
           <div className="adm-head-actions">
@@ -1241,8 +1444,106 @@ function Footer() {
   );
 }
 
+// ===== Intro pembuka =====
+// Saat website pertama kali dibuka: logo besar dirakit (atap turun, badan rumah naik), nama muncul
+// huruf demi huruf, lalu layar intro tersingkap ke atas seperti tirai dan isi beranda masuk.
+// Hanya sekali per sesi browser, tidak di halaman admin, dan bisa dilewati dengan sekali ketuk.
+const INTRO_KEY = 'kp_intro_seen';
+const INTRO_OUT_MS = 1900; // kapan tirai mulai terangkat
+const INTRO_END_MS = 2700; // kapan intro dilepas dari halaman
+function shouldPlayIntro(pathname) {
+  if (pathname.startsWith('/admin') || prefersReducedMotion()) return false;
+  try { return !sessionStorage.getItem(INTRO_KEY); } catch { return false; }
+}
+// Angka 000 → 100 di pojok kiri bawah layar pemuatan; tiap digit berputar seperti odometer.
+function IntroCounter({ duration }) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    const t0 = performance.now();
+    let frame;
+    const tick = now => {
+      const t = Math.min(1, (now - t0) / duration);
+      setValue(Math.round(100 * easeInOutCubic(t)));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [duration]);
+  return (
+    <div className="lx-counter">
+      <small>Memuat</small>
+      <span className="lx-odo">
+        {String(value).padStart(3, '0').split('').map((d, i) => (
+          <span key={i} className="lx-odo-col"><span style={{ '--d': d }}>{'0123456789'.split('').map(n => <i key={n}>{n}</i>)}</span></span>
+        ))}
+      </span>
+    </div>
+  );
+}
+
+function Intro() {
+  const { pathname } = useLocation();
+  const [phase, setPhase] = useState(() => (shouldPlayIntro(pathname) ? 'in' : 'done'));
+  const timers = React.useRef([]);
+  const leave = () => {
+    timers.current.forEach(clearTimeout);
+    setPhase('out');
+    timers.current = [setTimeout(() => setPhase('done'), INTRO_END_MS - INTRO_OUT_MS)];
+  };
+  useEffect(() => {
+    if (phase === 'done') return;
+    try { sessionStorage.setItem(INTRO_KEY, '1'); } catch { /* mode privat: intro tetap diputar sekali */ }
+    timers.current = [setTimeout(leave, INTRO_OUT_MS)];
+    return () => timers.current.forEach(clearTimeout);
+  }, []);
+  // selama intro: halaman tidak bisa digulir dan animasi beranda ditahan sampai tirai terangkat
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('intro-playing', phase === 'in');
+    root.classList.toggle('intro-lock', phase !== 'done');
+    return () => root.classList.remove('intro-playing', 'intro-lock');
+  }, [phase]);
+  if (phase === 'done') return null;
+  const name = 'Kos Primadona';
+  return (
+    <div className={`lx-intro${phase === 'out' ? ' is-out' : ''}`} onClick={phase === 'in' ? leave : undefined} aria-hidden="true">
+      <div className="lx-intro-layer lx-intro-brand" />
+      <div className="lx-intro-layer lx-intro-main">
+        <div className="lx-intro-content">
+          <svg className="lx-intro-mark" viewBox="0 0 21 19.4" fill="none">
+            <path className="lx-intro-roof" fill="#CE4F2F" d="M0 8.477 5.247 3.633l2.422 2.018L10.495 0l2.825 5.651 2.422-2.018 5.247 4.844H0Z" />
+            <path className="lx-intro-body" fill="#CE4F2F" fillRule="evenodd" d="M1.615 8.477h17.76v10.898H1.615z M7.669 11.706v6.055h5.656v-6.055z" />
+          </svg>
+          <p className="lx-intro-name">
+            {[...name].map((ch, i) => <span key={i} style={{ '--i': i }}>{ch === ' ' ? '\u00a0' : ch}</span>)}
+          </p>
+          <p className="lx-intro-tag">Kos bulanan di Jember</p>
+          <i className="lx-intro-line" />
+        </div>
+        <IntroCounter duration={INTRO_OUT_MS - 250} />
+      </div>
+    </div>
+  );
+}
+
+// Membuka / me-refresh website selalu dimulai dari halaman utama paling atas:
+// browser tidak mengembalikan posisi gulir lama, dan tanda "#kamar" sisa kunjungan sebelumnya dibuang.
+// Tanda "#" tetap dipakai bila datang dari link di website ini sendiri (mis. menu navbar di halaman detail).
+(() => {
+  try {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    const nav = performance.getEntriesByType?.('navigation')?.[0];
+    let fromThisSite = false;
+    try { fromThisSite = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch { /* referrer tidak valid */ }
+    const keepHash = nav?.type === 'navigate' && fromThisSite;
+    if (location.hash && !keepHash) history.replaceState(history.state, '', location.pathname + location.search);
+    window.scrollTo(0, 0);
+  } catch { /* browser lama: biarkan perilaku bawaan */ }
+})();
+
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>
+    <Intro />
     <ScrollReveal />
     <AdminAccessShortcut />
     <Routes>

@@ -151,21 +151,28 @@ button { cursor:pointer; }
   }
 }
 
-/* ===== Tema terang (selaras dengan website) ===== */
+/* ===== Tema terang: gaya editorial yang sama dengan website =====
+   Latar putih tulang berpola "+", kartu putih bergaris halus, judul tipis rapat, tombol kapsul terakota. */
 .auth-page {
-  --auth-bg:#fbf6f3; --auth-card:rgba(255,255,255,.88); --auth-line:#efe0d8; --auth-text:#2b1517; --auth-muted:#8a7270;
-  background:radial-gradient(1100px 700px at 50% 0%, #fbe6e3 0%, #fbf6f3 62%);
+  --auth-bg:#faf7f3; --auth-card:#ffffff; --auth-line:rgba(31,23,24,.11); --auth-text:#1f1718; --auth-muted:#8b8183;
+  background:#faf7f3 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cpath d='M32 28v8M28 32h8' stroke='%231f1718' stroke-opacity='.09' stroke-width='1'/%3E%3C/svg%3E");
 }
-.auth-glow span:nth-child(1) { background:#F3B6B666; }
-.auth-glow span:nth-child(2) { background:#E29B6A40; }
-.auth-card { box-shadow:0 30px 80px rgba(142,21,35,.16), inset 0 1px 0 #ffffff; }
-.auth-card h1 { color:#8E1523; }
+.auth-glow span { opacity:.35; }
+.auth-glow span:nth-child(1) { background:#fbe9df; }
+.auth-glow span:nth-child(2) { background:#efe6de; }
+.auth-card { border-radius:32px; box-shadow:0 2px 4px rgba(31,23,24,.04), 0 30px 70px -24px rgba(31,23,24,.25); }
+.auth-card h1 { font-family:'Plus Jakarta Sans', system-ui, sans-serif; font-weight:500; font-size:34px; letter-spacing:-.045em; color:#1f1718; }
 .auth-error { background:#fde8e6; border-color:#f4c3bd; color:#b42318; }
-.auth-field input { background:#fbf6f3; }
-.auth-field input::placeholder { color:#ad9995; }
-.auth-field input:focus { border-color:#8E1523; background:#fff; box-shadow:0 0 0 4px rgba(142,21,35,.12); }
-.auth-eye:hover { background:#fbe4e2; }
-.auth-submit { border-radius:999px; background:linear-gradient(135deg,#a3202f,#8E1523); box-shadow:0 12px 30px rgba(142,21,35,.3), inset 0 1px 0 #ffffff30; }
-.auth-submit:hover:not(:disabled) { box-shadow:0 16px 36px rgba(142,21,35,.38), inset 0 1px 0 #ffffff30; }
-.phase-success .auth-status { color:#a3202f; }
-.auth-foot small { color:#9a8582; }
+.auth-field input { background:#faf7f3; border-radius:14px; }
+.auth-field input::placeholder { color:#ad9f9f; }
+.auth-field input:focus { border-color:#CE4F2F; background:#fff; box-shadow:0 0 0 4px rgba(206,79,47,.14); }
+.auth-eye:hover { background:#fbe9df; color:#b4401f; }
+.auth-submit { border-radius:999px; background:#CE4F2F; box-shadow:0 14px 30px -12px rgba(206,79,47,.7); }
+.auth-submit:hover:not(:disabled) { background:#b4401f; box-shadow:0 18px 36px -12px rgba(206,79,47,.8); }
+.phase-success .auth-status { color:#b4401f; }
+.auth-foot small { color:#8b8183; }
+/* kilau berkala di tombol masuk, sama seperti tombol utama website */
+@keyframes authSheen { 0%, 62% { translate:-130% 0; } 100% { translate:130% 0; } }
+.auth-submit { overflow:hidden; isolation:isolate; }
+.auth-submit::after { content:''; position:absolute; inset:-1px; z-index:-1; pointer-events:none; background:linear-gradient(105deg, transparent 38%, rgba(255,255,255,.35) 50%, transparent 62%); translate:-130% 0; }
+@media (prefers-reduced-motion:no-preference) { .auth-submit::after { animation:authSheen 3.6s ease-in-out infinite; } }
