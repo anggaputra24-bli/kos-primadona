@@ -14,7 +14,7 @@ di `frontend/src/lodge.css` — pakai variabelnya, jangan menulis warna baru lan
 | `--line` | `rgba(31,23,24,.11)` | semua garis tipis |
 | `--night` | `#1d1113` | bagian gelap ("Cara menyewa", footer) |
 | `--clay` / `--clay-2` / `--clay-soft` | `#CE4F2F` / `#b4401f` / `#fbe9df` | **satu-satunya aksen**: tombol utama, titik, ikon aktif |
-| `--ok`, `--danger` | hijau / merah | **hanya** status pembayaran admin (lunas / terlambat) |
+| `--ok`, `--danger` | hijau / merah | **hanya** untuk status: kamar tersedia / terisi, dan pembayaran lunas / terlambat |
 
 Jangan menambah warna aksen kedua. `--brand*`, `--peach`, `--blush` hanyalah nama lama yang dipetakan ke palet ini.
 

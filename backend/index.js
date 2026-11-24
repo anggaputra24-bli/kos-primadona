@@ -41,7 +41,7 @@ const upload = multer({
     destination: uploadsDir,
     filename: (req, file, cb) => cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${IMAGE_TYPES[file.mimetype]}`)
   }),
-  limits: { fileSize: 5 * 1024 * 1024, files: 6 },
+  limits: { fileSize: 5 * 1024 * 1024, files: 8 },
   fileFilter: (req, file, cb) => cb(IMAGE_TYPES[file.mimetype] ? null : new Error('Foto harus berupa JPG, PNG, WebP, atau GIF'), Boolean(IMAGE_TYPES[file.mimetype]))
 });
 
@@ -75,6 +75,21 @@ function rejectAttempt(req, res, base) {
   if (left > 0) return res.status(401).json({ message: `${base}. Sisa ${left} percobaan.` });
   return res.status(429).json({ message: 'Terlalu banyak percobaan gagal. Coba lagi dalam 15 menit.' });
 }
+
+// Foto tambahan (isi kamar, kasur, sudut belajar, kamar mandi) untuk kamar contoh, berdasarkan foto sampulnya.
+const SAMPLE_GALLERY = {
+  '1522708323590-d24dbb6b0267': ['https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=1200&q=80', 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80', 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1200&q=80'],
+  '1598928506311-c55ded91a20c': ['https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=1200&q=80', 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1200&q=80', 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80'],
+  '1560185007-c5ca9d2c014d': ['https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=1200&q=80', 'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=1200&q=80', 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1200&q=80'],
+  '1505693416388-ac5ce068fe85': ['https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=1200&q=80', 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80', 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80'],
+  '1566665797739-1674de7a421a': ['https://images.unsplash.com/photo-1556020685-ae41abfc9365?auto=format&fit=crop&w=1200&q=80', 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1200&q=80'],
+  '1560448204-e02f11c3d0e2': ['https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?auto=format&fit=crop&w=1200&q=80', 'https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&w=1200&q=80', 'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=1200&q=80'],
+};
+const sampleGallery = cover => {
+  const key = Object.keys(SAMPLE_GALLERY).find(k => String(cover || '').includes(k));
+  return key ? [cover, ...SAMPLE_GALLERY[key]] : null;
+};
+const MAX_PHOTOS = 8;
 
 const seed = {
   admin: { id: 1, username: 'admin', password: bcrypt.hashSync('admin123', 10), nama_lengkap: 'Pengelola Primadona' },
@@ -110,6 +125,7 @@ const seed = {
   ]
 };
 
+seed.rooms.forEach(r => { r.photos = sampleGallery(r.foto) || [r.foto]; });
 let db = fs.existsSync(dataFile) ? JSON.parse(fs.readFileSync(dataFile, 'utf8')) : seed;
 if (!db.status_history) db.status_history = [];
 if (!db.payments) db.payments = [];
@@ -120,6 +136,24 @@ const save = () => {
   fs.writeFileSync(tmp, JSON.stringify(db, null, 2));
   fs.renameSync(tmp, dataFile);
 };
+// Link peta lama yang tersimpan dalam bentuk lain (mis. kode <iframe> lengkap) → ubah ke link embed.
+{
+  let fixed = false;
+  db.locations.forEach(l => {
+    const embed = normalizeMapEmbed(l.peta_embed);
+    if (embed && embed !== l.peta_embed) { l.peta_embed = embed; fixed = true; }
+  });
+  if (fixed && fs.existsSync(dataFile)) save();
+}
+// Kamar contoh lama yang baru punya 1 foto → beri galeri foto contoh (foto unggahan admin tidak disentuh).
+{
+  let changed = false;
+  db.rooms.forEach(r => {
+    const g = (r.photos || []).length <= 1 && sampleGallery(r.foto);
+    if (g) { r.photos = g; changed = true; }
+  });
+  if (changed && fs.existsSync(dataFile)) save();
+}
 let usingDefaultPassword = bcrypt.compareSync(DEFAULT_PASSWORD, db.admin.password);
 
 const signToken = () => jwt.sign(
@@ -148,6 +182,33 @@ const publicRoom = (room, req) => {
   PRIVATE_ROOM_FIELDS.forEach(k => delete copy[k]);
   return copy;
 };
+// Kolom peta menerima berbagai isian dari admin lalu diubah menjadi link embed Google Maps yang aman:
+// kode <iframe> lengkap, link embed, link Google Maps biasa (place / koordinat / ?q=), atau alamat biasa.
+// Hanya Google Maps yang diizinkan agar website lain tidak bisa disisipkan. Mengembalikan null bila tidak bisa dipakai.
+function normalizeMapEmbed(value) {
+  let v = String(value || '').trim();
+  if (!v) return '';
+  const src = v.match(/<iframe[^>]*\ssrc\s*=\s*["']([^"']+)["']/i);
+  if (src) v = src[1].replace(/&amp;/g, '&');
+  if (/^https?:\/\//i.test(v)) {
+    let url;
+    try { url = new URL(v); } catch { return null; }
+    const host = url.hostname.replace(/^www\./, '');
+    if (host === 'maps.app.goo.gl' || host === 'goo.gl') return null; // link pendek tidak bisa disematkan
+    if (!/^(google\.[a-z.]+|maps\.google\.[a-z.]+)$/.test(host)) return null;
+    if (url.pathname.startsWith('/maps/embed')) return `https://www.google.com${url.pathname}${url.search}`;
+    if (url.searchParams.get('output') === 'embed') return `https://www.google.com/maps?${url.searchParams}`;
+    const at = url.pathname.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    const place = url.pathname.match(/\/maps\/place\/([^/]+)/);
+    const q = url.searchParams.get('q') || url.searchParams.get('query')
+      || (place && decodeURIComponent(place[1].replace(/\+/g, ' '))) || (at && `${at[1]},${at[2]}`);
+    return q ? `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed` : null;
+  }
+  if (/[<>]/.test(v)) return null;
+  return `https://www.google.com/maps?q=${encodeURIComponent(v.slice(0, 200))}&output=embed`; // alamat biasa
+}
+const MAP_ERROR = 'Link peta tidak bisa dipakai. Di Google Maps pilih Bagikan → Sematkan peta → Salin HTML, lalu tempel di sini (atau ketik alamat lengkapnya saja).';
+
 const ROOM_STATUSES = ['tersedia', 'sudah_dipakai'];
 // Ubah status kamar. Bila kamar kembali terisi, tagihan dihitung mulai bulan ini — bulan-bulan saat kamar
 // kosong tidak boleh ikut terhitung sebagai tunggakan. Data penghuni tetap disimpan.
@@ -212,19 +273,31 @@ app.get('/api/kamar/:id', (req, res) => {
 
 app.post('/api/lokasi', auth, (req, res) => {
   const item = { id: Date.now(), peraturan: [], ...req.body };
+  if ('peta_embed' in item) {
+    const embed = normalizeMapEmbed(item.peta_embed);
+    if (embed === null) return res.status(400).json({ message: MAP_ERROR });
+    item.peta_embed = embed;
+  }
   db.locations.push(item); save(); res.status(201).json(item);
 });
 app.put('/api/lokasi/:id', auth, (req, res) => {
   const i = db.locations.findIndex(l => l.id === Number(req.params.id));
   if (i < 0) return res.status(404).json({ message: 'Lokasi tidak ditemukan' });
-  db.locations[i] = { ...db.locations[i], ...req.body }; save(); res.json(db.locations[i]);
+  const b = { ...req.body };
+  delete b.id;
+  if ('peta_embed' in b) {
+    const embed = normalizeMapEmbed(b.peta_embed);
+    if (embed === null) return res.status(400).json({ message: MAP_ERROR });
+    b.peta_embed = embed;
+  }
+  db.locations[i] = { ...db.locations[i], ...b }; save(); res.json(db.locations[i]);
 });
 app.delete('/api/lokasi/:id', auth, (req, res) => {
   db.locations = db.locations.filter(l => l.id !== Number(req.params.id));
   db.rooms = db.rooms.filter(r => r.lokasi_id !== Number(req.params.id)); save(); res.json({ success: true });
 });
 
-app.post('/api/kamar', auth, upload.array('foto', 6), (req, res) => {
+app.post('/api/kamar', auth, upload.array('foto', MAX_PHOTOS), (req, res) => {
   const b = req.body;
   const files = (req.files || []).map(f => `/uploads/${f.filename}`);
   const item = {
@@ -236,12 +309,21 @@ app.post('/api/kamar', auth, upload.array('foto', 6), (req, res) => {
   };
   db.rooms.push(item); save(); res.status(201).json(item);
 });
-app.put('/api/kamar/:id', auth, upload.array('foto', 6), (req, res) => {
+app.put('/api/kamar/:id', auth, upload.array('foto', MAX_PHOTOS), (req, res) => {
   const i = db.rooms.findIndex(r => r.id === Number(req.params.id));
   if (i < 0) return res.status(404).json({ message: 'Kamar tidak ditemukan' });
   const b = { ...req.body };
   PRIVATE_ROOM_FIELDS.forEach(k => delete b[k]); // data penghuni diubah lewat /penghuni
   delete b.tenant_since;
+  // Galeri: foto lama yang dipertahankan (keep_photos, urutan dari admin) + foto baru yang diunggah.
+  const current = db.rooms[i].photos?.length ? db.rooms[i].photos : [db.rooms[i].foto].filter(Boolean);
+  let keep = current;
+  if (b.keep_photos !== undefined) {
+    let list = [];
+    try { list = JSON.parse(b.keep_photos); } catch { return res.status(400).json({ message: 'Daftar foto tidak valid' }); }
+    keep = Array.isArray(list) ? list.filter(u => current.includes(u)) : [];
+  }
+  delete b.keep_photos; delete b.photos; delete b.foto;
   if (b.status !== undefined && !ROOM_STATUSES.includes(b.status)) return res.status(400).json({ message: 'Status kamar tidak valid' });
   if (b.status) applyStatus(db.rooms[i], b.status);
   delete b.status;
@@ -251,9 +333,10 @@ app.put('/api/kamar/:id', auth, upload.array('foto', 6), (req, res) => {
     lokasi_id: b.lokasi_id ? Number(b.lokasi_id) : db.rooms[i].lokasi_id,
     harga_sewa: b.harga_sewa ? Number(b.harga_sewa) : db.rooms[i].harga_sewa,
     fasilitas: b.fasilitas ? String(b.fasilitas).split(',').map(x => x.trim()).filter(Boolean) : db.rooms[i].fasilitas,
-    foto: files[0] || db.rooms[i].foto,
-    photos: files.length ? files : (db.rooms[i].photos || [db.rooms[i].foto])
   };
+  const photos = [...keep, ...files].slice(0, MAX_PHOTOS);
+  db.rooms[i].photos = photos;
+  db.rooms[i].foto = photos[0] || '';
   save(); res.json(db.rooms[i]);
 });
 app.patch('/api/kamar/:id/status', auth, (req, res) => {

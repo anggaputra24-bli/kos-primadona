@@ -38,6 +38,18 @@ test.describe('Login admin dari HP', () => {
     await expect(page.locator('.access-card')).toBeHidden();
   });
 
+  test('ketukan ke-6 yang agak pelan tidak menutup jendela kode rahasia', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByText('Kamar A1').first()).toBeVisible();
+    const logo = page.locator('.site-header .site-logo');
+    const box = await logo.boundingBox();
+    for (let i = 0; i < 6; i++) {
+      await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+      await page.waitForTimeout(500); // jari yang lambat: ketukan ke-6 datang >0,6 detik setelah jendela terbuka
+    }
+    await expect(page.locator('.access-card')).toBeVisible();
+  });
+
   test('ketuk logo 5 kali → kode rahasia → login → dashboard', async ({ page }, testInfo) => {
     await page.goto('/kamar/1'); // bisa dari halaman mana pun yang punya header
     await expect(page.getByRole('heading', { name: 'Kamar A1' })).toBeVisible();

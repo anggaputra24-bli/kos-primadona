@@ -95,7 +95,7 @@ html:has(.lodge), body:has(.lodge) { background:#faf7f3; }
   background:linear-gradient(180deg, rgba(22,12,14,.4) 0%, rgba(22,12,14,0) 24%, rgba(22,12,14,.14) 46%, rgba(22,12,14,.82) 100%),
              linear-gradient(90deg, rgba(22,12,14,.42) 0%, rgba(22,12,14,0) 60%); }
 .lodge .site-wrap.lx-hero-copy { position:relative; max-width:none; padding-top:calc(var(--nav-h) + 48px); padding-bottom:clamp(36px, 5vw, 72px); color:#fff;
-  opacity:calc(1 - var(--p) * 3.2); translate:0 calc(var(--p) * -180px); }
+  opacity:calc(1 - var(--p) * 3.2); }
 /* foto kamar yang melayang masuk saat bingkai menyusut (tiap foto punya kecepatan sendiri) */
 .lx-floats { position:absolute; inset:0; z-index:-2; pointer-events:none; }
 .lx-float { position:absolute; width:clamp(110px, 12vw, 190px); aspect-ratio:3/4; object-fit:cover; border-radius:18px; background:var(--sand);
@@ -319,6 +319,14 @@ html:has(.lodge), body:has(.lodge) { background:#faf7f3; }
 .lodge .dhead .avail { padding:8px 14px; border-radius:999px; background:var(--surface); border:1px solid var(--line); font-size:13px; font-weight:600; }
 .lodge:not(.adm) .avail.yes { color:var(--clay-2); }
 .lodge:not(.adm) .avail.no { color:var(--muted); }
+/* label di atas foto kartu kamar tetap putih agar terbaca */
+.lodge .rcard .avail.yes, .lodge .rcard .avail.no { color:#fff; }
+/* status ketersediaan: hijau = tersedia, merah = terisi */
+.lodge .rcard .avail.yes { background:rgba(47,122,79,.92); border-color:rgba(255,255,255,.28); }
+.lodge .rcard .avail.no { background:rgba(180,35,24,.92); border-color:rgba(255,255,255,.28); }
+.lodge .rcard .avail.no::before { background:#fff; }
+.lodge .dhead .avail.yes { background:var(--ok-soft); border-color:transparent; color:var(--ok); }
+.lodge .dhead .avail.no { background:var(--danger-soft); border-color:transparent; color:var(--danger); }
 .lodge .dgrid { display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:clamp(24px, 3vw, 48px); align-items:start; }
 .lodge .dgallery { position:relative; aspect-ratio:3/2; border-radius:var(--r-lg); overflow:hidden; background:var(--sand); }
 .lodge .dgallery img { width:100%; height:100%; object-fit:cover; display:block; }
@@ -326,7 +334,10 @@ html:has(.lodge), body:has(.lodge) { background:#faf7f3; }
 .lodge .dg-nav:hover { background:#fff; color:var(--clay-2); }
 .lodge .dg-nav.prev { left:16px; } .lodge .dg-nav.next { right:16px; }
 .lodge .dg-count { position:absolute; right:16px; bottom:16px; background:rgba(22,12,14,.4); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); color:#fff; font-size:12px; font-weight:600; padding:6px 12px; border-radius:999px; }
-.lodge .dthumbs { display:flex; gap:10px; margin-top:12px; }
+.lodge .dthumbs { display:flex; gap:10px; margin-top:12px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
+.lodge .dthumbs::-webkit-scrollbar { display:none; }
+.lodge .dthumbs button { flex:none; }
+.lodge .dgallery { touch-action:pan-y; }
 .lodge .dthumbs button { width:92px; aspect-ratio:4/3; padding:0; border:2px solid transparent; border-radius:var(--r-sm); overflow:hidden; background:none; opacity:.6; }
 .lodge .dthumbs button.is-active { border-color:var(--clay); opacity:1; }
 .lodge .dthumbs img { width:100%; height:100%; object-fit:cover; display:block; }
@@ -560,6 +571,46 @@ html:has(.lodge), body:has(.lodge) { background:#faf7f3; }
   .lodge.adm .adm-head h1 { font-size:28px; }
 }
 
+/* ===== Parallax (nilai --pp −1…1 diisi ParallaxController di main.jsx) ===== */
+[data-parallax] { --pp:0; }
+/* foto di kartu kamar, banner, & peta: dibuat lebih tinggi dari bingkainya lalu digeser berlawanan arah
+   gulir → foto terlihat bergerak lebih lambat dari kartunya, seperti pemandangan di balik jendela */
+.lodge .rcard-photo img[data-parallax] { position:absolute; left:0; top:-11%; height:122%; translate:0 calc(var(--pp) * -8%); will-change:translate; }
+.lx-cta-media img[data-parallax] { top:-14%; height:128%; translate:0 calc(var(--pp) * -10%); will-change:translate; }
+.lodge .loc-map { position:relative; }
+.lodge .loc-map iframe[data-parallax] { position:absolute; left:0; top:-12%; height:124%; translate:0 calc(var(--pp) * -8%); }
+/* angka "Cara menyewa": melayang di depan, masing-masing dengan kecepatan berbeda */
+.lodge .steps span[data-parallax] { translate:0 calc(var(--pp) * var(--amp, 40px)); will-change:translate; }
+.lodge .steps li:nth-child(2) span[data-parallax] { --amp:80px; }
+.lodge .steps li:nth-child(3) span[data-parallax] { --amp:120px; }
+/* halaman detail kamar: foto besar & peta lebih lambat dari bingkainya,
+   foto kecil bergeser di dalam bingkainya masing-masing dengan kecepatan berbeda (beruntun) */
+.lodge .dgallery img.dg-img[data-parallax] { position:absolute; left:0; top:-9%; height:118%; translate:0 calc(var(--pp) * -7%); will-change:translate; }
+.lodge .dthumbs button { position:relative; }
+.lodge .dthumbs img[data-parallax] { position:absolute; left:0; top:-20%; height:140%; translate:0 calc(var(--pp) * var(--amp, -8%)); }
+.lodge .dthumbs button:nth-child(2) img[data-parallax] { --amp:-11%; }
+.lodge .dthumbs button:nth-child(3) img[data-parallax] { --amp:-14%; }
+.lodge .dthumbs button:nth-child(n+4) img[data-parallax] { --amp:-17%; }
+.lodge .dmap { position:relative; }
+.lodge .dmap iframe[data-parallax] { position:absolute; left:0; top:-12%; height:124%; translate:0 calc(var(--pp) * -8%); }
+/* dashboard admin — dibuat halus agar tidak mengganggu kerja:
+   angka ringkasan melayang beruntun, kolom kanan & kartu lokasi kedua sedikit lebih lambat */
+.lodge.adm .adm-stats dd[data-parallax] { translate:0 calc(var(--pp) * var(--amp, 6px)); will-change:translate; }
+.lodge.adm .adm-stats > div:nth-child(2) dd[data-parallax] { --amp:12px; }
+.lodge.adm .adm-stats > div:nth-child(3) dd[data-parallax] { --amp:18px; }
+.lodge.adm .adm-stats > div:nth-child(4) dd[data-parallax] { --amp:24px; }
+@media (min-width:961px) {
+  .lodge.adm .adm-cols > .adm-panel[data-parallax] { translate:0 calc(var(--pp) * -20px); will-change:translate; }
+  .lodge.adm .adm-locs > .adm-loc[data-parallax]:nth-child(even) { translate:0 calc(var(--pp) * -20px); will-change:translate; }
+}
+/* hero berlapis: saat digulir, label, judul baris 1, judul baris 2, paragraf & tombol naik dengan kecepatan berbeda */
+.lx-hero-copy > .lx-eyebrow { translate:0 calc(var(--p) * -340px); }
+.lx-hero-copy > .lx-title { translate:0 calc(var(--p) * -230px); }
+.lx-hero-copy > .lx-title span { translate:0 calc(var(--p) * 70px); }
+.lx-hero-copy > .lx-hero-foot { translate:0 calc(var(--p) * -110px); }
+.lx-hero-copy > .lx-scroll { translate:0 calc(var(--p) * -40px); }
+.lx-hero-media img { translate:0 calc(var(--p) * 50px); }
+
 /* ===== Dashboard admin: gaya editorial yang sama dengan website =====
    Judul besar tipis, tanggal sebagai label bertitik, angka besar di kolom bergaris tipis,
    panel putih bergaris halus tanpa bayangan tebal, dan tombol kapsul terakota. */
@@ -628,6 +679,30 @@ html:has(.lodge), body:has(.lodge) { background:#faf7f3; }
   .lodge.adm .adm-stats > div:nth-child(odd) { padding-left:0; }
   .lodge.adm .adm-stats dd { font-size:32px; }
 }
+
+/* ===== Admin: kelola foto kamar ===== */
+.lodge.adm .adm-photos { display:flex; flex-direction:column; gap:10px; }
+.lodge.adm .adm-photos-label { font-weight:600; color:var(--text-2); font-size:14px; }
+.lodge.adm .adm-photos-label small { margin-left:6px; font-weight:500; color:var(--muted); }
+.lodge.adm .adm-photo-list { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:10px; }
+.lodge.adm .adm-photo-list:empty { display:none; }
+.lodge.adm .adm-photo-list li { position:relative; aspect-ratio:4/3; border-radius:var(--r-sm); overflow:hidden; background:var(--sand); border:2px solid transparent; }
+.lodge.adm .adm-photo-list li.is-cover { border-color:var(--clay); }
+.lodge.adm .adm-photo-list li.is-new { border-style:dashed; border-color:var(--line-2); }
+.lodge.adm .adm-photo-list img { width:100%; height:100%; object-fit:cover; display:block; }
+.lodge.adm .adm-photo-tag { position:absolute; left:6px; bottom:6px; padding:3px 9px; border-radius:999px; background:var(--clay); color:#fff; font-size:11px; font-weight:600; }
+.lodge.adm .is-new .adm-photo-tag { background:var(--text); }
+.lodge.adm .adm-photo-cover { position:absolute; left:6px; bottom:6px; padding:3px 9px; border:0; border-radius:999px; background:rgba(255,255,255,.92); color:var(--text); font-size:11px; font-weight:600; cursor:pointer; }
+.lodge.adm .adm-photo-del { position:absolute; top:6px; right:6px; display:grid; place-items:center; width:28px; height:28px; padding:0; border:0; border-radius:50%; background:rgba(255,255,255,.92); color:var(--text); cursor:pointer; }
+.lodge.adm .adm-photo-del:hover { background:var(--danger); color:#fff; }
+.lodge.adm .adm-photo-del svg { width:14px; height:14px; }
+.lodge.adm .adm-photo-add { position:relative; display:flex; align-items:center; justify-content:center; gap:8px; min-height:52px; padding:10px 14px; border:1.5px dashed var(--line-2); border-radius:var(--r-sm); background:var(--surface); color:var(--text-2); font-size:14px; font-weight:600; cursor:pointer; text-align:center; }
+.lodge.adm .adm-photo-add:hover { border-color:var(--clay); color:var(--clay-2); }
+.lodge.adm .adm-photo-add svg { width:16px; height:16px; }
+.lodge.adm .adm-photo-add input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+.lodge.adm .adm-photo-add:has(input:disabled) { opacity:.55; cursor:not-allowed; }
+.lodge.adm .adm-photo-add:focus-within { outline:2px solid var(--clay); outline-offset:2px; }
+@media (hover:none) { .lodge.adm .adm-photo-del { width:34px; height:34px; } }
 
 /* ===== Intro pembuka: gambar logo → isi warna → portal zoom ke website (seperti situs referensi) ===== */
 html.intro-lock, html.intro-lock body { overflow:hidden; }
@@ -781,6 +856,7 @@ html.intro-playing .lx-hero-copy > *, html.intro-playing .lx-bar { animation-pla
   .lodge, .lodge *, .lodge *::before, .lodge *::after { animation:none !important; transition:none !important; }
   .lx-hero-media img { opacity:1; transform:none; }
   .lx-statement span { opacity:1; filter:none; }
+  [data-parallax], .lx-hero-copy > *, .lx-hero-copy > .lx-title span, .lx-hero-media img { translate:none !important; }
   /* tanpa animasi: bagian yang menempel jadi biasa */
   .lx-hero, .lx-zoom { height:auto; }
   .lx-hero-pin { position:relative; }

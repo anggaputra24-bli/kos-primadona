@@ -120,11 +120,53 @@ describe('Data penghuni', () => {
     assert.deepEqual(bill.tunggakan, []);
   });
 
+  test('kolom peta menerima kode iframe, link Google Maps, atau alamat', async () => {
+    const { body: { token } } = await login();
+    const setMap = peta_embed => call('PUT', '/api/lokasi/2', { token, body: { peta_embed } });
+    const iframe = '<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!2sBAGUS%20KOST!5e0" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"></iframe>';
+    assert.equal((await setMap(iframe)).body.peta_embed, 'https://www.google.com/maps/embed?pb=!1m18!1m12!2sBAGUS%20KOST!5e0', 'kode <iframe> lengkap');
+    assert.equal((await setMap('https://www.google.com/maps/place/Universitas+Jember/@-8.16,113.71,17z')).body.peta_embed,
+      'https://www.google.com/maps?q=Universitas%20Jember&output=embed', 'link place');
+    assert.equal((await setMap('https://www.google.com/maps/@-8.1601,113.7166,17z')).body.peta_embed,
+      'https://www.google.com/maps?q=-8.1601%2C113.7166&output=embed', 'link koordinat');
+    assert.equal((await setMap('Jl. Kalimantan No. 42, Jember')).body.peta_embed,
+      'https://www.google.com/maps?q=Jl.%20Kalimantan%20No.%2042%2C%20Jember&output=embed', 'alamat biasa');
+    for (const bad of ['https://situs-jahat.com/halaman', 'https://maps.app.goo.gl/abc123', '<script>alert(1)</script>']) {
+      const res = await setMap(bad);
+      assert.equal(res.status, 400, bad);
+      assert.match(res.body.message, /Sematkan peta/);
+    }
+  });
+
   test('peraturan harus berupa daftar', async () => {
     const { body: { token } } = await login();
     assert.equal((await call('PUT', '/api/lokasi/1/peraturan', { token, body: { peraturan: 'bukan daftar' } })).status, 400);
     const { body } = await call('PUT', '/api/lokasi/1/peraturan', { token, body: { peraturan: ['  Jaga kebersihan. ', ''] } });
     assert.deepEqual(body.peraturan, ['Jaga kebersihan.']);
+  });
+
+  test('setiap kamar contoh punya beberapa foto', async () => {
+    const { body } = await call('GET', '/api/kamar');
+    for (const room of body) {
+      assert.ok(room.photos.length >= 3, `${room.nama_kamar} hanya punya ${room.photos.length} foto`);
+      assert.equal(room.foto, room.photos[0], 'foto sampul = foto pertama');
+    }
+  });
+
+  test('admin bisa menghapus, mengurutkan, dan menambah foto kamar', async () => {
+    const { body: { token } } = await login();
+    const before = (await call('GET', '/api/kamar/2')).body.photos;
+    const form = new FormData();
+    // pertahankan foto ke-3 lalu ke-1 (foto ke-2 & ke-4 dihapus), lalu tambah 2 foto baru
+    form.append('keep_photos', JSON.stringify([before[2], before[0], 'https://contoh.com/bukan-milik-kamar-ini.jpg']));
+    form.append('foto', new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' }), 'a.png');
+    form.append('foto', new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' }), 'b.png');
+    const { status, body } = await call('PUT', '/api/kamar/2', { token, body: form });
+    assert.equal(status, 200);
+    assert.equal(body.photos.length, 4);
+    assert.deepEqual(body.photos.slice(0, 2), [before[2], before[0]], 'urutan dipertahankan, URL asing dibuang');
+    assert.match(body.photos[2], /^\/uploads\//);
+    assert.equal(body.foto, before[2], 'foto pertama menjadi sampul');
   });
 
   test('unggahan selain gambar ditolak', async () => {

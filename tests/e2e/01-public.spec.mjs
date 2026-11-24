@@ -111,4 +111,17 @@ test.describe('Website publik', () => {
     await expect(page.locator('.room-list .rcard').first()).toBeVisible();
     await expect(page.getByText('Kamar B1').first()).toBeVisible();
   });
+
+  test('detail kamar menampilkan beberapa foto yang bisa digeser', async ({ page }) => {
+    await page.goto('/kamar/1');
+    await expect(page.getByRole('heading', { name: 'Kamar A1' })).toBeVisible();
+    const thumbs = page.locator('.dthumbs button');
+    expect(await thumbs.count()).toBeGreaterThanOrEqual(3);
+    await expect(page.locator('.dg-count')).toHaveText(`1 / ${await thumbs.count()}`);
+    await page.getByRole('button', { name: 'Foto berikutnya' }).click();
+    await expect(page.locator('.dg-count')).toHaveText(`2 / ${await thumbs.count()}`);
+    await thumbs.nth(2).click();
+    await expect(page.locator('.dg-count')).toHaveText(`3 / ${await thumbs.count()}`);
+    await expect(page.locator('.dg-img')).toHaveAttribute('alt', 'Kamar A1, foto 3');
+  });
 });

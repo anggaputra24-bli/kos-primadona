@@ -71,4 +71,22 @@ test.describe('Menu samping admin (laci)', () => {
     await page.locator('.adm-switch').first().click();
     await expect(page.locator('.adm-toast')).toContainText('Gagal: Server sedang bermasalah');
   });
+
+  test('form kamar: foto bisa dihapus dan dijadikan sampul', async ({ page, request }) => {
+    await loginByApi(page, request);
+    await page.locator('.adm-table tbody tr').filter({ hasText: 'Kamar B2' }).getByRole('button', { name: /Ubah|Edit/ }).first().click();
+    const list = page.locator('.adm-photo-list li');
+    const n = await list.count();
+    expect(n).toBeGreaterThanOrEqual(2);
+    const second = await list.nth(1).locator('img').getAttribute('src');
+    await list.nth(1).getByRole('button', { name: 'Jadikan sampul' }).click();
+    await expect(list.first().locator('img')).toHaveAttribute('src', second);
+    await page.getByRole('button', { name: `Hapus foto ${n}` }).click();
+    await expect(list).toHaveCount(n - 1);
+    await page.getByRole('button', { name: 'Simpan' }).click();
+    await expect(page.locator('.adm-toast')).toContainText('berhasil disimpan');
+    const room = await (await request.get('http://localhost:3101/api/kamar/5')).json();
+    expect(room.photos.length).toBe(n - 1);
+    expect(room.foto).toBe(second);
+  });
 });

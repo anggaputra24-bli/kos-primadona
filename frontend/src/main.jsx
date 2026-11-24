@@ -98,6 +98,44 @@ const rp = n => `Rp${rupiah(n)}`;
 
 // Elemen bertanda data-reveal muncul halus (naik + memudar) saat masuk ke layar.
 // Elemen yang baru ditambahkan (mis. setelah filter berubah) ikut dipantau.
+// Parallax umum: setiap elemen bertanda data-parallax mendapat --pp (−1 … 1) = posisi wadahnya
+// (elemen induk) terhadap tengah layar: 1 saat wadah baru masuk dari bawah, 0 di tengah, −1 saat keluar di atas.
+// CSS yang menentukan arah & jarak geraknya. Nilainya dihaluskan tiap frame agar gerakan tetap mulus,
+// dan hanya elemen yang dekat layar yang dihitung.
+function ParallaxController() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    const state = new WeakMap();
+    let frame = 0;
+    const tick = () => {
+      frame = 0;
+      const vh = window.innerHeight;
+      let moving = false;
+      document.querySelectorAll('[data-parallax]').forEach(el => {
+        const box = (el.parentElement || el).getBoundingClientRect();
+        if (box.bottom < -vh * 0.5 || box.top > vh * 1.5) return;
+        const target = Math.max(-1, Math.min(1, (box.top + box.height / 2 - vh / 2) / (vh / 2 + box.height / 2)));
+        const st = state.get(el) || { v: target };
+        st.v = Math.abs(target - st.v) < 0.001 ? target : st.v + (target - st.v) * 0.16;
+        if (st.v !== target) moving = true;
+        state.set(el, st);
+        el.style.setProperty('--pp', st.v.toFixed(4));
+      });
+      if (moving) frame = requestAnimationFrame(tick);
+    };
+    const kick = () => { if (!frame) frame = requestAnimationFrame(tick); };
+    kick();
+    // elemen baru (mis. kartu kamar setelah data dimuat / filter berubah) ikut dihitung
+    const mo = new MutationObserver(kick);
+    mo.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('scroll', kick, { passive: true });
+    window.addEventListener('resize', kick);
+    return () => { mo.disconnect(); window.removeEventListener('scroll', kick); window.removeEventListener('resize', kick); cancelAnimationFrame(frame); };
+  }, [pathname]);
+  return null;
+}
+
 function ScrollReveal() {
   useEffect(() => {
     if (!('IntersectionObserver' in window) || prefersReducedMotion()) return;
@@ -392,7 +430,7 @@ function Home() {
                 const free = rooms.filter(r => r.lokasi_id === l.id && r.status === 'tersedia').length;
                 return (
                   <article className="loc-item" key={l.id} data-reveal style={{ '--i': i }}>
-                    <div className="loc-map"><iframe src={l.peta_embed} title={`Peta ${l.nama_lokasi}`} loading="lazy" /></div>
+                    <div className="loc-map"><iframe data-parallax src={l.peta_embed} title={`Peta ${l.nama_lokasi}`} loading="lazy" /></div>
                     <div className="loc-body">
                       <h3>{l.nama_lokasi}</h3>
                       <p className="loc-addr">{Icon.pin}{l.alamat}</p>
@@ -419,9 +457,9 @@ function Home() {
                 <a className="lx-btn-dark" href="#kamar"><i aria-hidden="true" />Lihat daftar kamar{Icon.chevron}</a>
               </div>
               <ol className="steps">
-                <li data-reveal><span>01</span><h3>Pilih kamar</h3><p>Lihat foto, luas, fasilitas, dan harga tiap kamar di halaman detail.</p></li>
-                <li data-reveal style={{ '--i': 1 }}><span>02</span><h3>Hubungi pengelola</h3><p>Tekan tombol WhatsApp untuk menanyakan ketersediaan dan jadwal survei.</p></li>
-                <li data-reveal style={{ '--i': 2 }}><span>03</span><h3>Survei dan pindah</h3><p>Datang ke lokasi, cek kamar, sepakati pembayaran, lalu kamar siap ditempati.</p></li>
+                <li data-reveal><span data-parallax>01</span><h3>Pilih kamar</h3><p>Lihat foto, luas, fasilitas, dan harga tiap kamar di halaman detail.</p></li>
+                <li data-reveal style={{ '--i': 1 }}><span data-parallax>02</span><h3>Hubungi pengelola</h3><p>Tekan tombol WhatsApp untuk menanyakan ketersediaan dan jadwal survei.</p></li>
+                <li data-reveal style={{ '--i': 2 }}><span data-parallax>03</span><h3>Survei dan pindah</h3><p>Datang ke lokasi, cek kamar, sepakati pembayaran, lalu kamar siap ditempati.</p></li>
               </ol>
             </div>
           </div>
@@ -429,7 +467,7 @@ function Home() {
 
         <section className="site-wrap lx-cta-wrap" aria-label="Hubungi pengelola">
           <div className="lx-cta" data-reveal>
-            <div className="lx-cta-media" aria-hidden="true">{freeRoom && <img src={freeRoom.foto} alt="" loading="lazy" onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />}</div>
+            <div className="lx-cta-media" aria-hidden="true">{freeRoom && <img data-parallax src={freeRoom.foto} alt="" loading="lazy" onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />}</div>
             <div className="lx-cta-copy">
               <SecIndex n="04">Siap pindah?</SecIndex>
               <h2>Kamar kosong sudah menunggu.</h2>
@@ -464,7 +502,7 @@ function RoomCard({ room, selected, onCompare, index = 0 }) {
   return (
     <article className="rcard" data-reveal style={{ '--i': index % 3 }}>
       <Link to={`/kamar/${room.id}`} className="rcard-photo" tabIndex={-1} aria-hidden="true">
-        <img src={room.foto} alt="" loading="lazy" onLoad={e => e.currentTarget.classList.add('is-loaded')} onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />
+        <img data-parallax src={room.foto} alt="" loading="lazy" onLoad={e => e.currentTarget.classList.add('is-loaded')} onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />
       </Link>
       <span className={`avail ${free ? 'yes' : 'no'}`}>{free ? 'Tersedia' : 'Terisi'}</span>
       <label className="cmp"><input type="checkbox" checked={selected} onChange={onCompare} />Bandingkan</label>
@@ -532,15 +570,20 @@ function Detail() {
 
         <div className="dgrid">
           <div className="dmain">
-            <div className="dgallery" data-reveal>
-              <img key={photoIndex} className="dg-img" src={photos[photoIndex]} alt={`${room.nama_kamar}, foto ${photoIndex + 1}`} onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />
+            <div className="dgallery" data-reveal
+              onTouchStart={e => { e.currentTarget.dataset.x = e.touches[0].clientX; }}
+              onTouchEnd={e => {
+                const dx = e.changedTouches[0].clientX - Number(e.currentTarget.dataset.x || 0);
+                if (photos.length > 1 && Math.abs(dx) > 40) setPhotoIndex((photoIndex + (dx < 0 ? 1 : -1) + photos.length) % photos.length);
+              }}>
+              <img key={photoIndex} className="dg-img" data-parallax src={photos[photoIndex]} alt={`${room.nama_kamar}, foto ${photoIndex + 1}`} onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />
               {photos.length > 1 && <>
                 <button className="dg-nav prev" aria-label="Foto sebelumnya" onClick={() => setPhotoIndex((photoIndex - 1 + photos.length) % photos.length)}>{Icon.back}</button>
                 <button className="dg-nav next" aria-label="Foto berikutnya" onClick={() => setPhotoIndex((photoIndex + 1) % photos.length)}>{Icon.arrow}</button>
                 <span className="dg-count">{photoIndex + 1} / {photos.length}</span>
               </>}
             </div>
-            {photos.length > 1 && <div className="dthumbs">{photos.map((p, i) => <button key={i} className={i === photoIndex ? 'is-active' : ''} onClick={() => setPhotoIndex(i)}><img src={p} alt="" /></button>)}</div>}
+            {photos.length > 1 && <div className="dthumbs">{photos.map((p, i) => <button key={i} className={i === photoIndex ? 'is-active' : ''} onClick={() => setPhotoIndex(i)}><img data-parallax src={p} alt="" /></button>)}</div>}
 
             <section className="dsec" data-reveal>
               <h2>Fasilitas kamar</h2>
@@ -553,7 +596,7 @@ function Detail() {
             <section className="dsec" data-reveal>
               <h2>Lokasi dan sekitarnya</h2>
               <p>{room.lokasi.info_lingkungan}</p>
-              <div className="dmap"><iframe src={room.lokasi.peta_embed} title="Peta lokasi" loading="lazy" /></div>
+              <div className="dmap"><iframe data-parallax src={room.lokasi.peta_embed} title="Peta lokasi" loading="lazy" /></div>
             </section>
           </div>
 
@@ -781,6 +824,8 @@ function AdminAccessShortcut() {
   useEffect(() => { if (isOpen) setShowCode(false); }, [isOpen]);
   // Waktu jendela dibuka, dicatat langsung (bukan lewat state) agar ketukan sisa tidak menutupnya.
   const openedAt = React.useRef(0);
+  // Waktu ketukan logo terakhir: ketukan sisa (jari masih mengetuk setelah jendela terbuka) tidak boleh menutup jendela.
+  const lastLogoTap = React.useRef(0);
 
   useEffect(() => {
     const onKeyDown = event => {
@@ -813,6 +858,7 @@ function AdminAccessShortcut() {
       const now = Date.now();
       taps = now - lastTap < 1000 ? taps + 1 : 1;
       lastTap = now;
+      lastLogoTap.current = now;
       if (taps >= 5) {
         taps = 0;
         event.preventDefault();
@@ -858,7 +904,8 @@ function AdminAccessShortcut() {
   return (
     <div className={`access-overlay${closing ? ' is-closing' : ''}`} onMouseDown={event => {
       // Abaikan ketukan sisa (mis. ketukan logo ke-6) yang terjadi tepat setelah jendela terbuka.
-      if (event.target === event.currentTarget && Date.now() - openedAt.current > 600) close();
+      const sinceTap = Date.now() - Math.max(openedAt.current, lastLogoTap.current);
+      if (event.target === event.currentTarget && sinceTap > 1000) close(); // sama dengan jeda maksimal antar ketukan logo
     }}>
       <form className="access-card" onSubmit={submit}>
         <button className="access-close" type="button" aria-label="Tutup" onClick={close}>
@@ -1026,7 +1073,7 @@ function Admin() {
     const form = new FormData(e.target);
     const tenantData = { tenant: form.get('tenant') || '', tenant_phone: form.get('tenant_phone') || '', due_day: form.get('due_day') || null };
     ['tenant', 'tenant_phone', 'due_day'].forEach(k => form.delete(k));
-    if (!form.get('foto')?.size) form.delete('foto');
+    if (!form.getAll('foto').some(f => f?.size)) form.delete('foto');
     try {
       const saved = await api(editing?.id ? `/api/kamar/${editing.id}` : '/api/kamar', { method: editing?.id ? 'PUT':'POST', body: form });
       await api(`/api/kamar/${saved.id}/penghuni`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(tenantData) });
@@ -1125,17 +1172,17 @@ function Admin() {
         <div className="adm-view" key={tab}>
         {tab === 'dashboard' && <>
           <dl className="adm-stats">
-            <div><dt>Total kamar</dt><dd><CountUp value={rooms.length} /></dd><small>di {locations.length} lokasi</small></div>
-            <div><dt>Tersedia</dt><dd className="ok"><CountUp value={rooms.length - occupied.length} /></dd><small>siap disewakan</small></div>
-            <div><dt>Terisi</dt><dd><CountUp value={occupied.length} /></dd><small>{rooms.length ? Math.round(occupied.length / rooms.length * 100) : 0}% tingkat hunian</small></div>
-            <div><dt>Diterima bulan ini</dt><dd><CountUp value={received} format={rp} /></dd><small>{billed ? `dari Rp${rupiah(billed)} · ${unpaid ? `${unpaid} belum bayar` : 'semua lunas'}` : 'belum ada tagihan'}</small></div>
+            <div><dt>Total kamar</dt><dd data-parallax><CountUp value={rooms.length} /></dd><small>di {locations.length} lokasi</small></div>
+            <div><dt>Tersedia</dt><dd data-parallax className="ok"><CountUp value={rooms.length - occupied.length} /></dd><small>siap disewakan</small></div>
+            <div><dt>Terisi</dt><dd data-parallax><CountUp value={occupied.length} /></dd><small>{rooms.length ? Math.round(occupied.length / rooms.length * 100) : 0}% tingkat hunian</small></div>
+            <div><dt>Diterima bulan ini</dt><dd data-parallax><CountUp value={received} format={rp} /></dd><small>{billed ? `dari Rp${rupiah(billed)} · ${unpaid ? `${unpaid} belum bayar` : 'semua lunas'}` : 'belum ada tagihan'}</small></div>
           </dl>
           <div className="adm-cols">
             <section className="adm-panel">
               <div className="adm-panel-head"><h2>Kamar</h2><button className="adm-link" onClick={() => setTab('kamar')}>Kelola semua</button></div>
               <RoomTable rooms={rooms} toggle={toggle} removeRoom={removeRoom} edit={openEdit} locName={locName} compact />
             </section>
-            <section className="adm-panel">
+            <section className="adm-panel" data-parallax>
               <div className="adm-panel-head"><h2>Tagihan bulan ini</h2><button className="adm-link" onClick={() => setTab('pembayaran')}>Kelola</button></div>
               {reminders.length === 0 ? <p className="adm-empty">Belum ada penghuni dengan tanggal jatuh tempo.</p> :
                 <ul className="adm-due">{reminders.slice(0, 5).map(b => <BillSummaryRow key={b.kamar_id} b={b} />)}</ul>}
@@ -1156,7 +1203,7 @@ function Admin() {
               <label>Nama penghuni<input name="tenant" defaultValue={editing.tenant||''} placeholder="Kosongkan jika tersedia" /></label>
               <label>No. HP / WhatsApp penghuni<input name="tenant_phone" type="tel" inputMode="tel" defaultValue={editing.tenant_phone ? `0${editing.tenant_phone.slice(2)}` : ''} placeholder="081234567890" /><small>Dipakai untuk tombol pengingat WhatsApp.</small></label>
               <label>Tanggal jatuh tempo<input name="due_day" type="number" min="1" max="31" defaultValue={editing.due_day||''} placeholder="1–31" /><small>Tanggal 29–31 otomatis jadi akhir bulan untuk bulan yang lebih pendek.</small></label>
-              <label>Foto kamar<input name="foto" type="file" accept="image/*" /></label>
+              <RoomPhotosField room={editing} />
               <div className="adm-form-actions wide"><button type="button" className="btn btn-line" onClick={()=>setEditing(null)}>Batal</button><button className="btn btn-dark" type="submit">Simpan</button></div>
             </form>
           </section>}
@@ -1226,6 +1273,47 @@ function BillSummaryRow({ b }) {
   );
 }
 
+// Foto kamar di form admin: foto lama tampil sebagai gambar kecil (bisa dihapus / dijadikan sampul),
+// foto baru bisa dipilih beberapa sekaligus. Total maksimal 8 foto; foto pertama = sampul di kartu kamar.
+const MAX_ROOM_PHOTOS = 8;
+function RoomPhotosField({ room }) {
+  const initial = room.photos?.length ? room.photos : [room.foto].filter(Boolean);
+  const [keep, setKeep] = useState(initial);
+  const [picked, setPicked] = useState([]);
+  useEffect(() => () => picked.forEach(x => URL.revokeObjectURL(x.url)), [picked]);
+  const room_left = MAX_ROOM_PHOTOS - keep.length;
+  const onPick = e => {
+    const files = [...e.target.files];
+    if (files.length > room_left) {
+      alert(`Maksimal ${MAX_ROOM_PHOTOS} foto per kamar. Kamu masih bisa menambah ${room_left} foto.`);
+      e.target.value = ''; setPicked([]); return;
+    }
+    setPicked(files.map(f => ({ name: f.name, url: URL.createObjectURL(f) })));
+  };
+  const makeCover = u => setKeep(k => [u, ...k.filter(x => x !== u)]);
+  return (
+    <div className="wide adm-photos">
+      <span className="adm-photos-label">Foto kamar <small>{keep.length + picked.length}/{MAX_ROOM_PHOTOS} · foto pertama jadi sampul</small></span>
+      {room.id && <input type="hidden" name="keep_photos" value={JSON.stringify(keep)} />}
+      <ul className="adm-photo-list">
+        {keep.map((u, i) => (
+          <li key={u} className={i === 0 ? 'is-cover' : ''}>
+            <img src={u} alt={`Foto ${i + 1}`} onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />
+            {i === 0 ? <span className="adm-photo-tag">Sampul</span>
+              : <button type="button" className="adm-photo-cover" onClick={() => makeCover(u)}>Jadikan sampul</button>}
+            <button type="button" className="adm-photo-del" aria-label={`Hapus foto ${i + 1}`} onClick={() => setKeep(k => k.filter(x => x !== u))}>{AdIcon.close}</button>
+          </li>
+        ))}
+        {picked.map(x => <li key={x.url} className="is-new"><img src={x.url} alt={x.name} /><span className="adm-photo-tag">Baru</span></li>)}
+      </ul>
+      <label className="adm-photo-add">
+        {AdIcon.plus}{room_left > 0 ? 'Tambah foto (bisa pilih beberapa sekaligus)' : 'Sudah 8 foto — hapus foto lama untuk menambah'}
+        <input name="foto" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple disabled={room_left <= 0} onChange={onPick} />
+      </label>
+    </div>
+  );
+}
+
 function PaymentsAdmin({ setMessage, onChange, editRoom }) {
   const [periode, setPeriode] = useState(() => toPeriod(new Date()));
   const [data, setData] = useState(null);
@@ -1270,10 +1358,10 @@ function PaymentsAdmin({ setMessage, onChange, editRoom }) {
       </div>
 
       <dl className="adm-stats">
-        <div><dt>Tagihan {monthLabel(periode).split(' ')[0]}</dt><dd><CountUp value={s?.ditagih || 0} format={rp} /></dd><small>{data ? `total sewa ${data.tagihan.length} penghuni` : '…'}</small></div>
-        <div><dt>Sudah diterima</dt><dd className="ok"><CountUp value={s?.diterima || 0} format={rp} /></dd><small>{s ? `${s.lunas} lunas · ${s.ditagih ? Math.round(Math.min(s.diterima, s.ditagih) / s.ditagih * 100) : 0}% terkumpul` : '…'}</small></div>
-        <div><dt>Sisa tagihan</dt><dd className={s && s.belum === 0 && s.ditagih ? 'ok' : ''}><CountUp value={Math.max(0, (s?.ditagih || 0) - (s?.diterima || 0))} format={rp} /></dd><small>{s ? (s.belum ? `${s.belum} penghuni belum bayar` : s.ditagih ? 'semua sudah lunas' : '–') : '…'}</small></div>
-        <div><dt>Terlambat</dt><dd className={s?.terlambat ? 'late' : ''}><CountUp value={s?.terlambat ?? 0} /></dd><small>lewat jatuh tempo</small></div>
+        <div><dt>Tagihan {monthLabel(periode).split(' ')[0]}</dt><dd data-parallax><CountUp value={s?.ditagih || 0} format={rp} /></dd><small>{data ? `total sewa ${data.tagihan.length} penghuni` : '…'}</small></div>
+        <div><dt>Sudah diterima</dt><dd data-parallax className="ok"><CountUp value={s?.diterima || 0} format={rp} /></dd><small>{s ? `${s.lunas} lunas · ${s.ditagih ? Math.round(Math.min(s.diterima, s.ditagih) / s.ditagih * 100) : 0}% terkumpul` : '…'}</small></div>
+        <div><dt>Sisa tagihan</dt><dd data-parallax className={s && s.belum === 0 && s.ditagih ? 'ok' : ''}><CountUp value={Math.max(0, (s?.ditagih || 0) - (s?.diterima || 0))} format={rp} /></dd><small>{s ? (s.belum ? `${s.belum} penghuni belum bayar` : s.ditagih ? 'semua sudah lunas' : '–') : '…'}</small></div>
+        <div><dt>Terlambat</dt><dd data-parallax className={s?.terlambat ? 'late' : ''}><CountUp value={s?.terlambat ?? 0} /></dd><small>lewat jatuh tempo</small></div>
       </dl>
 
       <section className="adm-panel">
@@ -1426,14 +1514,14 @@ function LocationAdmin({ locations, rooms, refresh, setMessage }) {
         <label>Nomor WhatsApp<input name="nomor_whatsapp" defaultValue={editing.nomor_whatsapp||''} placeholder="628123456789" required /></label>
         <label className="wide">Alamat<input name="alamat" defaultValue={editing.alamat||''} required /></label>
         <label className="wide">Info lingkungan<textarea name="info_lingkungan" rows="3" defaultValue={editing.info_lingkungan||''} /></label>
-        <label className="wide">Link embed Google Maps<input name="peta_embed" defaultValue={editing.peta_embed||''} /></label>
+        <label className="wide">Peta Google Maps<input name="peta_embed" defaultValue={editing.peta_embed||''} placeholder="Tempel kode/link dari Google Maps, atau ketik alamat lengkap" /><small>Di Google Maps: Bagikan → Sematkan peta → Salin HTML, lalu tempel di sini. Link Google Maps biasa atau alamat lengkap juga bisa.</small></label>
         <div className="adm-form-actions wide"><button type="button" className="btn btn-line" onClick={() => setEditing(null)}>Batal</button><button className="btn btn-dark">Simpan</button></div>
       </form>
     </section> : <div className="adm-toolbar"><button className="btn btn-dark" onClick={() => setEditing({})}>{AdIcon.plus}Tambah lokasi</button></div>}
     <div className="adm-locs">{locations.map(l => {
       const own = rooms.filter(r => r.lokasi_id === l.id);
       return (
-        <article className="adm-panel adm-loc" key={l.id}>
+        <article className="adm-panel adm-loc" key={l.id} data-parallax>
           <div>
             <h3>{l.nama_lokasi}</h3>
             <p>{l.alamat}</p>
@@ -1656,6 +1744,7 @@ createRoot(document.getElementById('root')).render(
   <BrowserRouter>
     <Intro />
     <ScrollReveal />
+    <ParallaxController />
     <AdminAccessShortcut />
     <Routes>
       <Route path="/" element={<Home />} />
