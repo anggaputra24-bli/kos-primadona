@@ -887,8 +887,12 @@ html.intro-playing .lx-hero-copy > *, html.intro-playing .lx-bar { animation-pla
   .lodge .site-logo { font-size:15px; }
   .lodge .site-logo img { width:30px; height:30px; padding:5px; }
   .lodge .site-nav .site-nav-cta { padding:0 12px 0 14px; font-size:12.5px; }
-  /* foto besar beranda */
-  .lodge .lx-title { font-size:clamp(36px, 10.5vw, 46px); }
+  /* foto besar beranda: tidak setinggi layar penuh & tidak menempel saat digulir, judul cukup 2 baris */
+  .lx-hero { height:auto; }
+  .lx-hero-pin { position:relative; height:min(66svh, 600px); min-height:440px; }
+  .lodge .site-wrap.lx-hero-copy { padding-bottom:24px; }
+  .lx-hero-media { clip-path:inset(0 calc(var(--e) * 5%) 0 calc(var(--e) * 5%) round 0 0 calc(var(--e) * 28px) calc(var(--e) * 28px)); }
+  .lodge .lx-title { font-size:clamp(28px, 8.4vw, 38px); }
   .lx-eyebrow { margin-bottom:12px; font-size:10px; letter-spacing:.14em; }
   .lx-lead { font-size:14px; line-height:1.55; }
   .lx-hero-foot { gap:16px; margin-top:16px; }

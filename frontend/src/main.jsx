@@ -44,7 +44,9 @@ function useScrollProgress(ref, mode = 'pin', speed = 1) {
     let target = 0, current = -1, frame = 0;
     const measure = () => {
       const r = el.getBoundingClientRect(), vh = window.innerHeight;
-      const raw = mode === 'pin' ? -r.top / Math.max(r.height - vh, 1) : (vh - r.top) / (vh + r.height);
+      // 'pin' pada bagian yang lebih pendek dari layar (mis. foto beranda di HP): 0 di atas, 1 saat bagian sudah lewat.
+      const span = r.height - vh;
+      const raw = mode === 'pin' ? -r.top / (span > 0 ? span : r.height) : (vh - r.top) / (vh + r.height);
       return Math.min(Math.max(raw * speed, 0), 1);
     };
     const paint = v => {

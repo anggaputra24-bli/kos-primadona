@@ -134,6 +134,14 @@ test.describe('Website publik', () => {
     await expect(panel).toBeHidden();
   });
 
+  test('foto beranda setinggi layar di laptop, lebih pendek di HP', async ({ page }) => {
+    await page.goto('/');
+    const vh = page.viewportSize().height;
+    const h = await page.locator('.lx-hero-pin').evaluate(el => el.getBoundingClientRect().height);
+    if (page.viewportSize().width > 640) expect(Math.round(h)).toBe(vh);
+    else expect(h).toBeLessThan(vh * 0.75);
+  });
+
   test('detail kamar menampilkan beberapa foto yang bisa digeser', async ({ page }) => {
     await page.goto('/kamar/1');
     await expect(page.getByRole('heading', { name: 'Kamar A1' })).toBeVisible();
