@@ -265,24 +265,7 @@ const HERO_PHOTO = 'https://images.unsplash.com/photo-1449844908441-8829872d2607
 
 function Home() {
   const heroRef = React.useRef(null);
-  const zoomRef = React.useRef(null);
   useScrollProgress(heroRef, 'pin');
-  useScrollProgress(zoomRef, 'pin', 1.25);
-  // "Kos [foto] Primadona": kedua kata beda panjang, jadi seluruh susunan digeser (--shift)
-  // agar titik tengah dari ujung "Kos" sampai ujung "Primadona" tepat di tengah layar.
-  useEffect(() => {
-    const el = zoomRef.current;
-    if (!el) return;
-    const measure = () => {
-      const a = el.querySelector('.lx-zoom-w.a'), b = el.querySelector('.lx-zoom-w.b');
-      const side = window.matchMedia('(min-width: 761px)').matches;
-      el.style.setProperty('--shift', side && a && b ? `${(b.offsetWidth - a.offsetWidth) / 2}px` : '0px');
-    };
-    measure();
-    window.addEventListener('resize', measure);
-    document.fonts?.ready.then(measure).catch(() => {});
-    return () => window.removeEventListener('resize', measure);
-  }, []);
   const [locations, setLocations] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [locationId, setLocationId] = useState(1);
@@ -335,7 +318,6 @@ function Home() {
           <h1 className="lx-title">Kamar Nyaman.<span>Hidup Lebih Tenang.</span></h1>
           <div className="lx-hero-foot">
             <p className="lx-lead">Dua bangunan di Jember dengan kamar berperabot, harga bulanan yang jelas, dan pengelola yang bisa dihubungi langsung.</p>
-            <a className="lx-btn-accent" href="#kamar"><i aria-hidden="true" />Lihat kamar{Icon.chevron}</a>
           </div>
           <a className="lx-scroll" href="#kamar" aria-hidden="true" tabIndex={-1}><span>+</span>Gulir untuk menjelajah</a>
         </div>
@@ -358,16 +340,6 @@ function Home() {
         <div data-reveal style={{ '--i': 1 }}>{Icon.tag}<p><b>Harga jelas</b><small>Harga bulanan tertera di setiap kamar.</small></p></div>
         <div data-reveal style={{ '--i': 2 }}>{Icon.cap}<p><b>Dekat kampus</b><small>Dua lokasi strategis di Jember.</small></p></div>
         <div data-reveal style={{ '--i': 3 }}>{Icon.chat}<p><b>Langsung ke pengelola</b><small>Tanya dan atur survei lewat WhatsApp.</small></p></div>
-      </section>
-      <section className="lx-zoom" ref={zoomRef} aria-label="Kos Primadona">
-        <div className="lx-zoom-pin">
-          <span className="lx-zoom-w a" aria-hidden="true">Kos</span>
-          <figure className="lx-zoom-fig">
-            {freeRoom && <img src={freeRoom.foto} alt="" loading="lazy" onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />}
-          </figure>
-          <span className="lx-zoom-w b" aria-hidden="true">Primadona</span>
-          <p className="lx-zoom-cap">{freeRoom ? `${freeRoom.nama_kamar} · ${locations.find(l => l.id === freeRoom.lokasi_id)?.nama_lokasi || 'Jember'}` : 'Kos Primadona, Jember'}</p>
-        </div>
       </section>
       <main>
 
@@ -1073,7 +1045,9 @@ function Admin() {
     const form = new FormData(e.target);
     const tenantData = { tenant: form.get('tenant') || '', tenant_phone: form.get('tenant_phone') || '', due_day: form.get('due_day') || null };
     ['tenant', 'tenant_phone', 'due_day'].forEach(k => form.delete(k));
-    if (!form.getAll('foto').some(f => f?.size)) form.delete('foto');
+    const picked = form.getAll('foto').filter(f => f?.size);
+    form.delete('foto');
+    for (const f of await Promise.all(picked.map(f => shrinkPhoto(f)))) form.append('foto', f);
     try {
       const saved = await api(editing?.id ? `/api/kamar/${editing.id}` : '/api/kamar', { method: editing?.id ? 'PUT':'POST', body: form });
       await api(`/api/kamar/${saved.id}/penghuni`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(tenantData) });
@@ -1276,6 +1250,27 @@ function BillSummaryRow({ b }) {
 // Foto kamar di form admin: foto lama tampil sebagai gambar kecil (bisa dihapus / dijadikan sampul),
 // foto baru bisa dipilih beberapa sekaligus. Total maksimal 8 foto; foto pertama = sampul di kartu kamar.
 const MAX_ROOM_PHOTOS = 8;
+// Foto dari kamera HP bisa 5–10 MB. Sebelum diunggah, foto diperkecil (sisi terpanjang 1600 px, JPEG)
+// agar cepat dikirim dan muat di batas unggahan server online. GIF dan foto yang sudah kecil tidak diubah.
+async function shrinkPhoto(file, max = 1600, quality = 0.85) {
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type) || typeof createImageBitmap !== 'function') return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    if (scale === 1 && file.size < 900 * 1024) { bmp.close?.(); return file; }
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; // PNG transparan → latar putih
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    bmp.close?.();
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], `${file.name.replace(/\.[^.]+$/, '')}.jpg`, { type: 'image/jpeg' });
+  } catch { return file; }
+}
 function RoomPhotosField({ room }) {
   const initial = room.photos?.length ? room.photos : [room.foto].filter(Boolean);
   const [keep, setKeep] = useState(initial);

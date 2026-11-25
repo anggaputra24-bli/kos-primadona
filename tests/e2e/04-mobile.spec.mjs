@@ -43,11 +43,20 @@ test.describe('Login admin dari HP', () => {
     await expect(page.getByText('Kamar A1').first()).toBeVisible();
     const logo = page.locator('.site-header .site-logo');
     const box = await logo.boundingBox();
-    for (let i = 0; i < 6; i++) {
-      await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-      await page.waitForTimeout(500); // jari yang lambat: ketukan ke-6 datang >0,6 detik setelah jendela terbuka
-    }
+    const tap = () => page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    // Jam dibuat tetap agar jeda antar ketukan pasti, walau komputer tes sedang sibuk.
+    const t0 = Date.now();
+    for (let i = 0; i < 5; i++) { await page.clock.setFixedTime(t0 + i * 250); await tap(); }
     await expect(page.locator('.access-card')).toBeVisible();
+    // jari yang lambat: ketukan ke-6 datang 0,8 detik setelah jendela terbuka (dulu menutup jendela)
+    await page.clock.setFixedTime(t0 + 4 * 250 + 800);
+    await tap();
+    await page.waitForTimeout(300);
+    await expect(page.locator('.access-card')).toBeVisible();
+    // ketukan di luar jendela setelah >1 detik tetap menutupnya seperti biasa
+    await page.clock.setFixedTime(t0 + 4 * 250 + 2500);
+    await tap();
+    await expect(page.locator('.access-card')).toBeHidden();
   });
 
   test('ketuk logo 5 kali → kode rahasia → login → dashboard', async ({ page }, testInfo) => {

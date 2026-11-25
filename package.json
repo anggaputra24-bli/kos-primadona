@@ -11,9 +11,13 @@
     "start": "node backend/index.js",
     "test": "node --test tests/api/*.test.mjs",
     "test:e2e": "playwright test",
-    "test:all": "npm test && npm run test:e2e"
+    "test:all": "npm test && npm run test:e2e",
+    "data:ekspor": "node scripts/data-online.js ekspor",
+    "data:impor": "node scripts/data-online.js impor"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.1",
+    "@vercel/blob": "^2.9.0",
     "@vitejs/plugin-react": "latest",
     "bcryptjs": "latest",
     "cors": "latest",
@@ -30,5 +34,8 @@
   "devDependencies": {
     "@playwright/test": "^1.65.1",
     "concurrently": "latest"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

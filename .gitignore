@@ -1,5 +1,8 @@
 node_modules/
 .env
+.env.local
+.env*.local
+.vercel
 *.log
 dist/
 frontend/dist/
@@ -16,3 +19,6 @@ playwright-report/
 
 # Pengaturan pribadi Claude Code (jangan dibagikan)
 .claude/settings.local.json
+
+# Backup otomatis dari npm run data:ekspor
+backend/data.backup-*.json

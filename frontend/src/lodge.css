@@ -139,25 +139,6 @@ html:has(.lodge), body:has(.lodge) { background:#faf7f3; }
 .lx-statement span { opacity:.16; filter:blur(1.5px); transition:opacity .5s var(--ease), filter .6s var(--ease); }
 .lx-statement span.on { opacity:1; filter:none; }
 
-/* "Kos [foto] Primadona": foto di tengah membesar sampai penuh layar, kedua kata terdorong ke samping */
-.lx-zoom { --p:0; --e:0; position:relative; height:240vh; margin-top:clamp(40px, 6vw, 100px); }
-.lx-zoom-pin { position:sticky; top:0; height:100vh; height:100svh; overflow:hidden; }
-/* Foto selalu berukuran penuh layar; yang berubah hanya potongannya (clip-path) dan skala foto di dalamnya.
-   Kata digeser dengan translate. Tidak ada lebar/tinggi yang berubah → tidak ada hitung ulang tata letak per frame. */
-/* --s0: skala foto saat bingkai masih kecil, agar seluruh ruangan terlihat (= max(lebar, tinggi) bingkai ÷ layar) */
-.lx-zoom { --fw:30vw; --fh:38vh; --s0:.42; --shift:0px; }
-/* --k: sisa geseran ke kiri (penuh saat bingkai kecil, nol saat foto sudah penuh layar) */
-.lx-zoom-pin { --k:calc(var(--shift) * (1 - var(--e))); }
-.lx-zoom-fig { position:absolute; inset:0; margin:0; overflow:hidden; background:var(--sand); will-change:clip-path;
-  clip-path:inset(calc((1 - var(--e)) * (50vh - var(--fh) / 2)) calc((1 - var(--e)) * (50vw - var(--fw) / 2) + var(--k))
-                  calc((1 - var(--e)) * (50vh - var(--fh) / 2)) calc((1 - var(--e)) * (50vw - var(--fw) / 2) - var(--k)) round calc((1 - var(--e)) * 28px)); }
-.lx-zoom-fig img { width:100%; height:100%; object-fit:cover; display:block; transform:translateX(calc(-1 * var(--k))) scale(calc(var(--s0) + var(--e) * (1 - var(--s0)))); will-change:transform; }
-.lx-zoom-w { position:absolute; top:50%; font:500 clamp(48px, 6.4vw, 120px)/1 var(--display); letter-spacing:-.055em; color:var(--text); white-space:nowrap;
-  opacity:calc(1 - var(--e) * 1.3); will-change:transform, opacity; }
-.lx-zoom-w.a { right:50%; transform:translate(calc(-1 * (var(--fw) / 2 + 2.2vw) - var(--e) * (50vw - var(--fw) / 2) - var(--k)), -50%); }
-.lx-zoom-w.b { left:50%; transform:translate(calc(var(--fw) / 2 + 2.2vw + var(--e) * (50vw - var(--fw) / 2) - var(--k)), -50%); }
-.lx-zoom-cap { position:absolute; left:var(--pad); bottom:28px; margin:0; font-size:12px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#fff; text-shadow:0 1px 12px rgba(22,12,14,.6); opacity:calc(var(--e) * 2.4 - 1.4); }
-
 /* barisan berjalan berisi fasilitas (bergerak terus, berhenti saat disorot) */
 .lx-marquee { margin-top:clamp(80px, 10vw, 150px); overflow:hidden; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:clamp(18px, 2.2vw, 30px) 0; }
 .lx-marquee-track { display:flex; width:max-content; }
@@ -408,13 +389,6 @@ html:has(.lodge), body:has(.lodge) { background:#faf7f3; }
   .lx-drift .d3, .lx-drift .d4 { display:none; }
   .lx-drift img { width:21vw; }
   .lx-drift .d1 { left:4%; top:22px; --v:70px; } .lx-drift .d2 { right:4%; top:auto; bottom:22px; --v:90px; }
-  .lx-zoom { height:200vh; }
-  /* HP: bingkai hampir selebar layar & setengah tinggi layar; "Kos" rata kiri di atas foto,
-     "Primadona" rata kanan di bawahnya, sehingga tidak ada ruang kosong besar */
-  .lx-zoom { --fw:calc(100vw - 2 * var(--pad)); --fh:50vh; --s0:.9; margin-top:clamp(24px, 6vw, 40px); }
-  .lx-zoom-w { top:50%; font-size:clamp(56px, 19vw, 96px); line-height:.9; }
-  .lx-zoom-w.a { left:var(--pad); right:auto; transform:translateY(calc(-100% - var(--fh) / 2 - 10px - var(--e) * (50vh - var(--fh) / 2))); }
-  .lx-zoom-w.b { left:auto; right:var(--pad); transform:translateY(calc(var(--fh) / 2 + 6px + var(--e) * (50vh - var(--fh) / 2))); }
 }
 @media (max-width:640px) {
   .lodge { --nav-h:64px; }
@@ -530,7 +504,7 @@ html:has(.lodge), body:has(.lodge) { background:#faf7f3; }
 .lodge.adm .adm-loc p { color:var(--text-2); }
 .lodge.adm .adm-loc-foot { border-top-color:var(--line); color:var(--muted); }
 .lodge.adm .adm-rules label span, .lodge.adm .adm-rules p { color:var(--muted); }
-.lodge.adm .loc-tabs button { background:var(--surface); }
+.lodge.adm .loc-tabs button:not(.is-active) { background:var(--surface); } /* tab aktif tetap gelap + tulisan putih */
 .lodge.adm .avail { padding:4px 10px; border-radius:999px; background:var(--bg); border:1px solid var(--line); }
 
 .lodge.adm .chip { background:var(--bg); color:var(--text-2); font-weight:700; }
@@ -630,10 +604,12 @@ html:has(.lodge), body:has(.lodge) { background:#faf7f3; }
 
 /* angka ringkasan: besar & tipis, kolom bergaris tegak (tanpa kotak) */
 .lodge.adm .adm-stats { background:transparent; border:0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); border-radius:0; box-shadow:none; }
-.lodge.adm .adm-stats > div { padding:22px 24px 24px; }
+.lodge.adm .adm-stats { container-type:inline-size; }
+.lodge.adm .adm-stats > div { min-width:0; padding:22px 24px 24px; }
 .lodge.adm .adm-stats > div:first-child { padding-left:0; }
 .lodge.adm .adm-stats dt { font-size:12.5px; font-weight:500; }
-.lodge.adm .adm-stats dd { margin:14px 0 10px; font:400 clamp(34px, 3.4vw, 54px)/1 var(--display); letter-spacing:-.055em; }
+/* ukuran angka mengikuti lebar kolom (sama untuk semua kolom; tinggi barisnya tetap agar halaman tidak bergeser saat laci menu dibuka), jadi nominal panjang (Rp12.500.000) tidak menabrak kolom sebelah */
+.lodge.adm .adm-stats dd { margin:14px 0 10px; --stat-h:clamp(34px, 3.4vw, 54px); height:var(--stat-h); font:400 clamp(22px, min(calc((25cqi - 48px) / 5.6), var(--stat-h)), 54px)/var(--stat-h) var(--display); letter-spacing:-.045em; white-space:nowrap; font-variant-numeric:tabular-nums; }
 .lodge.adm .adm-stats small { font-size:12.5px; }
 
 /* panel putih bergaris halus */
@@ -677,7 +653,7 @@ html:has(.lodge), body:has(.lodge) { background:#faf7f3; }
   .lodge.adm .adm-head h1 { font-size:40px; }
   .lodge.adm .adm-stats > div { padding:18px 14px; }
   .lodge.adm .adm-stats > div:nth-child(odd) { padding-left:0; }
-  .lodge.adm .adm-stats dd { font-size:32px; }
+  .lodge.adm .adm-stats dd { --stat-h:clamp(28px, 7vw, 40px); font-size:clamp(22px, min(calc((50cqi - 28px) / 5.6), var(--stat-h)), 40px); }
 }
 
 /* ===== Admin: kelola foto kamar ===== */
@@ -858,9 +834,8 @@ html.intro-playing .lx-hero-copy > *, html.intro-playing .lx-bar { animation-pla
   .lx-statement span { opacity:1; filter:none; }
   [data-parallax], .lx-hero-copy > *, .lx-hero-copy > .lx-title span, .lx-hero-media img { translate:none !important; }
   /* tanpa animasi: bagian yang menempel jadi biasa */
-  .lx-hero, .lx-zoom { height:auto; }
+  .lx-hero { height:auto; }
   .lx-hero-pin { position:relative; }
-  .lx-zoom-pin { position:relative; height:80vh; }
   .lx-floats, .lx-drift { display:none; }
   .lx-marquee-track { flex-wrap:wrap; width:auto; }
   .lx-marquee span + span { display:none; }

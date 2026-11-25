@@ -1,13 +1,13 @@
 # Pekerjaan tertunda
 
 ## Sebelum website dipasang di internet (wajib)
-- [ ] Pakai **HTTPS** (hosting seperti Railway/Render/VPS + domain). Sekarang password & kode rahasia lewat `http://`.
-- [ ] Jalankan hasil `npm run build` + backend, **bukan** server pengembangan (`npm run dev` / `dev:hp`).
-- [ ] Atur `app.set('trust proxy', …)` sesuai hosting agar pembatas percobaan login membaca IP pengunjung yang benar.
-- [ ] Tambahkan **header keamanan** (mis. `helmet`: CSP, `X-Frame-Options`/`frame-ancestors`).
+- [x] Pakai **HTTPS** — otomatis di Vercel (lihat bagian "Online di Vercel" di README).
+- [x] Jalankan hasil `npm run build` + backend, bukan server pengembangan — Vercel memakai build otomatis.
+- [x] `trust proxy` aktif di Vercel (`process.env.VERCEL`) agar pembatas percobaan login membaca IP pengunjung.
+- [ ] Tambahkan **CSP** (`X-Frame-Options`, `nosniff`, `Referrer-Policy` sudah di `vercel.json`).
 - [ ] Batasi **CORS** hanya untuk domain website sendiri.
 - [ ] Buat `JWT_SECRET` dan `ADMIN_ACCESS_CODE` baru khusus server produksi.
-- [ ] Siapkan cadangan rutin untuk `backend/data.json` dan `backend/uploads/`.
+- [ ] Cadangan rutin: jalankan `npm run data:ekspor` berkala (mengunduh data & foto online ke laptop).
 
 ## Keamanan & kerapian
 - [ ] Hapus tulisan **"Demo: admin / admin123"** di halaman login dan bagian "Akun Admin Demo" di README.

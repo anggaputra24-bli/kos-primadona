@@ -8,8 +8,11 @@ const multer = require('multer');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const storage = require('./storage');
 
 const app = express();
+// Di Vercel alamat IP pengunjung ada di header X-Forwarded-For (dipakai pembatas percobaan gagal per IP).
+if (process.env.VERCEL) app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3001;
 const SECRET = process.env.JWT_SECRET;
 if (!SECRET || SECRET.length < 32) {
@@ -23,32 +26,67 @@ const DEFAULT_PASSWORD = 'admin123';
 // DATA_FILE / UPLOADS_DIR bisa diarahkan ke folder lain (dipakai tes agar data asli tidak tersentuh).
 const dataFile = process.env.DATA_FILE ? path.resolve(process.env.DATA_FILE) : path.join(__dirname, 'data.json');
 const uploadsDir = process.env.UPLOADS_DIR ? path.resolve(process.env.UPLOADS_DIR) : path.join(__dirname, 'uploads');
-const adminAccessTickets = new Map();
-fs.mkdirSync(uploadsDir, { recursive: true });
+let adminAccessTickets = new Map();
+// Di Vercel folder proyek hanya-baca: foto wajib disimpan di Vercel Blob.
+if (!storage.useBlob && !process.env.VERCEL) fs.mkdirSync(uploadsDir, { recursive: true });
 
 app.disable('x-powered-by');
 app.use(cors());
 app.use(express.json({ limit: '100kb' }));
-app.use('/uploads', express.static(uploadsDir, {
-  // File unggahan hanya boleh tampil sebagai gambar, bukan dijalankan sebagai halaman.
-  setHeaders: res => res.setHeader('X-Content-Type-Options', 'nosniff'),
-}));
+if (storage.useBlob) {
+  // Mode online: foto diambil dari Vercel Blob, tetap lewat alamat /uploads/<nama-file>.
+  app.get('/uploads/:name', async (req, res) => {
+    if (!/^[\w.-]+$/.test(req.params.name)) return res.status(404).end();
+    try {
+      const photo = await storage.getPhoto(req.params.name);
+      if (!photo) return res.status(404).end();
+      res.setHeader('Content-Type', photo.blob.contentType || 'application/octet-stream');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, s-maxage=31536000, immutable'); // nama file selalu unik
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      require('stream').Readable.fromWeb(photo.stream).pipe(res);
+    } catch (err) {
+      console.error('Gagal mengambil foto', err);
+      res.status(502).end();
+    }
+  });
+} else {
+  app.use('/uploads', express.static(uploadsDir, {
+    // File unggahan hanya boleh tampil sebagai gambar, bukan dijalankan sebagai halaman.
+    setHeaders: res => res.setHeader('X-Content-Type-Options', 'nosniff'),
+  }));
+}
 
 // Hanya terima foto (JPG/PNG/WebP/GIF) maksimal 5 MB; nama file dibuat acak oleh server.
 const IMAGE_TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
+const photoName = file => `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${IMAGE_TYPES[file.mimetype]}`;
 const upload = multer({
-  storage: multer.diskStorage({
+  storage: storage.useBlob || process.env.VERCEL ? multer.memoryStorage() : multer.diskStorage({
     destination: uploadsDir,
-    filename: (req, file, cb) => cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${IMAGE_TYPES[file.mimetype]}`)
+    filename: (req, file, cb) => cb(null, photoName(file))
   }),
   limits: { fileSize: 5 * 1024 * 1024, files: 8 },
   fileFilter: (req, file, cb) => cb(IMAGE_TYPES[file.mimetype] ? null : new Error('Foto harus berupa JPG, PNG, WebP, atau GIF'), Boolean(IMAGE_TYPES[file.mimetype]))
 });
+// Mode online: foto yang diterima (masih di memori) dikirim ke Vercel Blob.
+async function storeUploads(req, res, next) {
+  if (!storage.useBlob) return next();
+  if (!(req.files || []).length) return next();
+  try {
+    for (const f of req.files || []) {
+      f.filename = photoName(f);
+      await storage.putPhoto(f.filename, f.buffer, f.mimetype);
+    }
+    next();
+  } catch (err) {
+    console.error('Gagal menyimpan foto', err);
+    res.status(502).json({ message: 'Foto gagal disimpan. Coba lagi sebentar lagi.' });
+  }
+}
 
 // Pembatas percobaan gagal: 5 kali salah dalam 15 menit → dikunci 15 menit (per alamat IP).
 const MAX_FAILS = 5;
 const LOCK_MS = 15 * 60 * 1000;
-const failedAttempts = new Map();
+let failedAttempts = new Map();
 function attemptGuard(scope) {
   return (req, res, next) => {
     const key = `${scope}:${req.ip}`;
@@ -126,35 +164,89 @@ const seed = {
 };
 
 seed.rooms.forEach(r => { r.photos = sampleGallery(r.foto) || [r.foto]; });
-let db = fs.existsSync(dataFile) ? JSON.parse(fs.readFileSync(dataFile, 'utf8')) : seed;
-if (!db.status_history) db.status_history = [];
-if (!db.payments) db.payments = [];
-if (!db.admin.token_version) db.admin.token_version = 0;
-// Ditulis ke file sementara lalu diganti, supaya data.json tidak rusak bila server mati saat menyimpan.
+
+// Lengkapi / perbaiki data lama. Mengembalikan true bila ada yang perlu disimpan.
+function prepare(d) {
+  let changed = false;
+  if (!d.status_history) d.status_history = [];
+  if (!d.payments) d.payments = [];
+  if (!d.admin.token_version) d.admin.token_version = 0;
+  // Link peta lama yang tersimpan dalam bentuk lain (mis. kode <iframe> lengkap) → ubah ke link embed.
+  d.locations.forEach(l => {
+    const embed = normalizeMapEmbed(l.peta_embed);
+    if (embed && embed !== l.peta_embed) { l.peta_embed = embed; changed = true; }
+  });
+  // Kamar contoh lama yang baru punya 1 foto → beri galeri foto contoh (foto unggahan admin tidak disentuh).
+  d.rooms.forEach(r => {
+    const g = (r.photos || []).length <= 1 && sampleGallery(r.foto);
+    if (g) { r.photos = g; changed = true; }
+  });
+  return changed;
+}
+
+let db = !storage.shared && fs.existsSync(dataFile) ? JSON.parse(fs.readFileSync(dataFile, 'utf8')) : structuredClone(seed);
+// Mode file: ditulis ke file sementara lalu diganti, supaya data.json tidak rusak bila server mati saat menyimpan.
+// Mode online: penyimpanan ke database dilakukan otomatis sebelum jawaban dikirim (lihat middleware di bawah).
 const save = () => {
+  if (storage.shared) return;
   const tmp = `${dataFile}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(db, null, 2));
   fs.renameSync(tmp, dataFile);
 };
-// Link peta lama yang tersimpan dalam bentuk lain (mis. kode <iframe> lengkap) → ubah ke link embed.
-{
-  let fixed = false;
-  db.locations.forEach(l => {
-    const embed = normalizeMapEmbed(l.peta_embed);
-    if (embed && embed !== l.peta_embed) { l.peta_embed = embed; fixed = true; }
-  });
-  if (fixed && fs.existsSync(dataFile)) save();
+if (prepare(db) && !storage.shared && fs.existsSync(dataFile)) save();
+
+// Apakah admin masih memakai password bawaan (dihitung ulang hanya bila password berubah).
+let defaultPasswordCheck = { hash: null, value: false };
+const usingDefaultPassword = () => {
+  if (defaultPasswordCheck.hash !== db.admin.password) {
+    defaultPasswordCheck = { hash: db.admin.password, value: bcrypt.compareSync(DEFAULT_PASSWORD, db.admin.password) };
+  }
+  return defaultPasswordCheck.value;
+};
+
+// Di Vercel tanpa database, data tidak bisa disimpan → beri tahu cara menyambungkannya.
+if (process.env.VERCEL && !storage.shared) {
+  app.use('/api', (req, res) => res.status(503).json({ message: 'Database belum disambungkan. Di dashboard Vercel buka tab Storage → tambahkan Neon (Postgres), lalu Redeploy.' }));
 }
-// Kamar contoh lama yang baru punya 1 foto → beri galeri foto contoh (foto unggahan admin tidak disentuh).
-{
-  let changed = false;
-  db.rooms.forEach(r => {
-    const g = (r.photos || []).length <= 1 && sampleGallery(r.foto);
-    if (g) { r.photos = g; changed = true; }
+if (process.env.VERCEL && !storage.useBlob) {
+  app.use(['/api/kamar', '/api/kamar/:id'], (req, res, next) => {
+    if (!/multipart\/form-data/.test(req.headers['content-type'] || '')) return next();
+    res.status(503).json({ message: 'Penyimpanan foto belum disambungkan. Di dashboard Vercel buka tab Storage → tambahkan Blob, lalu Redeploy.' });
   });
-  if (changed && fs.existsSync(dataFile)) save();
 }
-let usingDefaultPassword = bcrypt.compareSync(DEFAULT_PASSWORD, db.admin.password);
+// Mode online: setiap permintaan API membaca data terbaru dari database; permintaan yang mengubah data
+// (POST/PUT/PATCH/DELETE) menyimpannya kembali — termasuk tiket akses & kunci percobaan gagal —
+// sebelum jawabannya dikirim ke browser.
+if (storage.shared) {
+  app.use('/api', async (req, res, next) => {
+    try {
+      const state = await storage.readShared();
+      const fresh = !state.db;
+      db = fresh ? structuredClone(seed) : state.db;
+      adminAccessTickets = new Map(Object.entries(state.runtime?.tickets || {}));
+      failedAttempts = new Map(Object.entries(state.runtime?.fails || {}));
+      const changed = prepare(db) || fresh;
+      const writes = !['GET', 'HEAD', 'OPTIONS'].includes(req.method);
+      if (changed && !writes) await storage.writeShared({ db });
+      if (writes) {
+        const sendJson = res.json.bind(res);
+        res.json = body => {
+          const runtime = { tickets: Object.fromEntries(adminAccessTickets), fails: Object.fromEntries(failedAttempts) };
+          storage.writeShared({ db, runtime }).then(() => sendJson(body), err => {
+            console.error('Gagal menyimpan ke database', err);
+            res.status(503);
+            sendJson({ message: 'Data gagal disimpan. Coba lagi sebentar lagi.' });
+          });
+          return res;
+        };
+      }
+      next();
+    } catch (err) {
+      console.error('Database tidak bisa dihubungi', err);
+      res.status(503).json({ message: 'Database sedang tidak bisa dihubungi. Coba lagi sebentar lagi.' });
+    }
+  });
+}
 
 const signToken = () => jwt.sign(
   { id: db.admin.id, username: db.admin.username, tv: db.admin.token_version },
@@ -260,7 +352,7 @@ app.post('/api/auth/login', attemptGuard('login'), adminAccess, (req, res) => {
   res.json({ token: signToken(), admin: { username: db.admin.username, nama_lengkap: db.admin.nama_lengkap } });
 });
 app.get('/api/auth/me', auth, (req, res) => res.json({
-  username: db.admin.username, nama_lengkap: db.admin.nama_lengkap, default_password: usingDefaultPassword,
+  username: db.admin.username, nama_lengkap: db.admin.nama_lengkap, default_password: usingDefaultPassword(),
 }));
 
 app.get('/api/lokasi', (req, res) => res.json(db.locations));
@@ -297,7 +389,7 @@ app.delete('/api/lokasi/:id', auth, (req, res) => {
   db.rooms = db.rooms.filter(r => r.lokasi_id !== Number(req.params.id)); save(); res.json({ success: true });
 });
 
-app.post('/api/kamar', auth, upload.array('foto', MAX_PHOTOS), (req, res) => {
+app.post('/api/kamar', auth, upload.array('foto', MAX_PHOTOS), storeUploads, (req, res) => {
   const b = req.body;
   const files = (req.files || []).map(f => `/uploads/${f.filename}`);
   const item = {
@@ -309,7 +401,7 @@ app.post('/api/kamar', auth, upload.array('foto', MAX_PHOTOS), (req, res) => {
   };
   db.rooms.push(item); save(); res.status(201).json(item);
 });
-app.put('/api/kamar/:id', auth, upload.array('foto', MAX_PHOTOS), (req, res) => {
+app.put('/api/kamar/:id', auth, upload.array('foto', MAX_PHOTOS), storeUploads, (req, res) => {
   const i = db.rooms.findIndex(r => r.id === Number(req.params.id));
   if (i < 0) return res.status(404).json({ message: 'Kamar tidak ditemukan' });
   const b = { ...req.body };
@@ -565,12 +657,11 @@ app.put('/api/auth/profil', auth, (req, res) => {
     }
     db.admin.password = bcrypt.hashSync(next, 10);
     db.admin.token_version += 1; // keluarkan sesi lain yang memakai password lama
-    usingDefaultPassword = false;
     token = signToken();
   }
   if (typeof nama_lengkap === 'string' && nama_lengkap.trim()) db.admin.nama_lengkap = nama_lengkap.trim().slice(0, 80);
   save();
-  res.json({ username: db.admin.username, nama_lengkap: db.admin.nama_lengkap, default_password: usingDefaultPassword, token });
+  res.json({ username: db.admin.username, nama_lengkap: db.admin.nama_lengkap, default_password: usingDefaultPassword(), token });
 });
 
 // Pesan error yang rapi untuk unggahan foto yang ditolak.
@@ -594,4 +685,6 @@ app.put('/api/lokasi/:id/peraturan', auth, (req, res) => {
   save(); res.json(location);
 });
 
-app.listen(PORT, () => console.log(`Kos Primadona server berjalan di http://localhost:${PORT}`));
+// Di Vercel server tidak perlu dinyalakan sendiri: file api/index.js memakai `app` ini sebagai fungsi.
+if (!process.env.VERCEL) app.listen(PORT, () => console.log(`Kos Primadona server berjalan di http://localhost:${PORT} (penyimpanan: ${storage.mode})`));
+module.exports = app;

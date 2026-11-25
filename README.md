@@ -215,6 +215,32 @@ npm run build
 
 Hasil build frontend tersimpan pada folder `frontend/dist/`.
 
+## Online di Vercel
+
+Proyek ini siap di-deploy ke Vercel (pengaturan di `vercel.json`, backend lewat `api/index.js`).
+
+1. Di [vercel.com](https://vercel.com): **Add New → Project** → import repo GitHub ini → **Deploy**
+   (pengaturan build sudah otomatis dari `vercel.json`, tidak perlu diubah).
+2. Buka proyek → tab **Storage**:
+   - **Create Database → Neon (Postgres)** → sambungkan ke proyek ini (mengisi `DATABASE_URL`).
+   - **Create → Blob** → sambungkan ke proyek ini (mengisi `BLOB_READ_WRITE_TOKEN`).
+3. **Settings → Environment Variables**, tambahkan (pakai nilai acak baru, jangan sama dengan laptop):
+   - `JWT_SECRET` — minimal 32 karakter
+   - `ADMIN_ACCESS_CODE` — minimal 16 karakter (kode rahasia untuk membuka login admin)
+4. Tab **Deployments** → titik tiga pada deployment terakhir → **Redeploy**.
+5. Buka website → ketuk logo 5× → masukkan `ADMIN_ACCESS_CODE` → login `admin` / `admin123`
+   → **segera ganti password** di menu Profil admin.
+
+Setelah itu setiap `git push` ke GitHub otomatis membuat website online ikut diperbarui.
+
+**Memindah data laptop ↔ online** (butuh `npx vercel link` lalu `npx vercel env pull .env.local` sekali):
+
+```bash
+npm run data:ekspor               # unduh data & foto online → backend/data.json + backend/uploads/ (backup)
+npm run data:impor                # kirim data.json & foto laptop ke website online (database masih kosong)
+npm run data:impor -- --timpa     # sama, tapi mengganti data online yang sudah ada
+```
+
 ## Mengirim Perubahan ke GitHub
 
 Jalankan perintah berikut dari folder utama project (`D:\ProjectMPPL`) di terminal:
@@ -315,7 +341,9 @@ kos-primadona/
 
 Untuk pengembangan lokal, data disimpan pada `backend/data.json`. Upload foto disimpan pada `backend/uploads/`.
 
-Untuk penggunaan produksi, bagian penyimpanan dapat diganti dengan MySQL atau PostgreSQL beserta Cloudinary atau penyimpanan objek lain.
+Di Vercel (bila `DATABASE_URL` diisi), data yang sama disimpan di Neon Postgres sebagai satu dokumen JSON (tabel `kos_store`)
+dan foto di Vercel Blob (bila `BLOB_READ_WRITE_TOKEN` diisi). Foto tetap dipanggil lewat `/uploads/<nama-file>`,
+jadi data bisa dipindah bolak-balik dengan `npm run data:ekspor` / `npm run data:impor`. Lihat `backend/storage.js`.
 
 ## Lingkup Sistem
 

@@ -35,6 +35,15 @@ Perubahan di `backend/index.js` perlu restart server (`Ctrl+C` lalu jalankan lag
 - `frontend/src/styles.css` — halaman login admin (maskot).
 - `tests/api/` — tes API · `tests/e2e/` — spec Playwright + `fixtures.mjs` (foto/peta/font ditiru) + `helpers.mjs`.
 
+## Online (Vercel)
+- `vercel.json` + `api/index.js` (mengekspor `app` dari `backend/index.js`; `app.listen` hanya bila bukan `VERCEL`).
+- `backend/storage.js` memilih mode: **file** (default) atau **bersama** bila `DATABASE_URL`/`POSTGRES_URL` (Neon) ada —
+  data dibaca ulang tiap permintaan `/api` dan ditulis sebelum `res.json` untuk POST/PUT/PATCH/DELETE,
+  termasuk tiket akses & kunci percobaan gagal. Foto ke Vercel Blob bila `BLOB_READ_WRITE_TOKEN` ada, tetap di `/uploads/<nama>`.
+- Tes mode bersama memakai `KV_FILE` (`tests/api/online.test.mjs`, dua server berbagi satu file).
+- Batas kiriman Vercel ±4,5 MB → foto diperkecil di browser (`shrinkPhoto`) sebelum diunggah.
+- `npm run data:ekspor` / `data:impor` memindah data laptop ↔ online (kunci dari `.env.local`, jangan di-commit).
+
 ## Hal yang mudah rusak — jaga perilakunya
 - **Akses admin:** Ctrl+Z (laptop) atau ketuk logo header 5× dalam <1 detik/ketukan (HP) → kode rahasia →
   tiket 10 menit sekali pakai → login → JWT 12 jam (`token_version` mencabut sesi lama saat ganti password).
