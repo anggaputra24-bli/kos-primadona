@@ -22,3 +22,7 @@ playwright-report/
 
 # Backup otomatis dari npm run data:ekspor
 backend/data.backup-*.json
+.env*
+
+# Kode rahasia admin website online (dibuat saat deploy, jangan dibagikan)
+KODE-ADMIN-ONLINE.txt

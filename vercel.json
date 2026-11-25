@@ -4,6 +4,7 @@
   "installCommand": "npm install",
   "buildCommand": "npm run build",
   "outputDirectory": "frontend/dist",
+  "regions": ["sin1"],
   "functions": {
     "api/index.js": { "maxDuration": 30 }
   },
