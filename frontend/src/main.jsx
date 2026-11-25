@@ -488,21 +488,42 @@ function RoomCard({ room, selected, onCompare, index = 0 }) {
 }
 
 function Comparison({ rooms, remove, close }) {
+  // Kolom kosong (maks. 3 kamar) hanya petunjuk; isi & fungsi perbandingan tetap sama.
+  const empty = Array.from({ length: Math.max(0, 3 - rooms.length) });
+  const cheapest = rooms.length > 1 ? Math.min(...rooms.map(r => r.harga_sewa)) : null;
   const rows = [
-    ['Harga', r => `Rp${rupiah(r.harga_sewa)}`],
+    ['Harga', r => <><b className="cmp-price">Rp{rupiah(r.harga_sewa)}</b><small>/bulan</small>{r.harga_sewa === cheapest && <em className="cmp-best">Termurah</em>}</>],
     ['Luas', r => r.luas],
-    ['Status', r => r.status === 'tersedia' ? 'Tersedia' : 'Terisi'],
-    ['Fasilitas', r => r.fasilitas.join(', ')],
+    ['Status', r => <em className={`cmp-status ${r.status === 'tersedia' ? 'yes' : 'no'}`}>{r.status === 'tersedia' ? 'Tersedia' : 'Terisi'}</em>],
+    ['Fasilitas', r => <ul className="cmp-chips">{r.fasilitas.map(f => <li key={f}>{f}</li>)}</ul>],
   ];
   return (
     <aside className="cmp-panel" aria-label="Perbandingan kamar">
       <div className="cmp-head">
-        <b>Bandingkan kamar <small>{rooms.length}/3</small></b>
+        <b><i aria-hidden="true" />Bandingkan kamar <small>{rooms.length}/3</small></b>
         <button onClick={close} aria-label="Tutup perbandingan">{Icon.close}</button>
       </div>
-      <div className="cmp-table" style={{ '--cols': rooms.length }}>
-        <div className="cmp-row cmp-names"><span />{rooms.map(r => <span key={r.id}><Link to={`/kamar/${r.id}`}>{r.nama_kamar}</Link><button onClick={() => remove(r)} aria-label={`Hapus ${r.nama_kamar}`}>{Icon.close}</button></span>)}</div>
-        {rows.map(([label, get]) => <div className="cmp-row" key={label}><span>{label}</span>{rooms.map(r => <span key={r.id}>{get(r)}</span>)}</div>)}
+      <div className="cmp-table" style={{ '--cols': 3 }}>
+        <div className="cmp-row cmp-names">
+          <span />
+          {rooms.map(r => (
+            <span key={r.id} className="cmp-room">
+              <Link to={`/kamar/${r.id}`} className="cmp-photo" tabIndex={-1} aria-hidden="true">
+                <img src={r.photos?.[0] || r.foto || PHOTO_FALLBACK} alt="" loading="lazy" onError={e => { e.currentTarget.src = PHOTO_FALLBACK; }} />
+              </Link>
+              <Link to={`/kamar/${r.id}`} className="cmp-name">{r.nama_kamar}{Icon.chevron}</Link>
+              <button onClick={() => remove(r)} aria-label={`Hapus ${r.nama_kamar}`}>{Icon.close}</button>
+            </span>
+          ))}
+          {empty.map((_, i) => <span key={`kosong-${i}`} className="cmp-empty"><i aria-hidden="true">+</i><small>Centang “Bandingkan” di kamar lain</small></span>)}
+        </div>
+        {rows.map(([label, get]) => (
+          <div className="cmp-row" key={label}>
+            <span>{label}</span>
+            {rooms.map(r => <span key={r.id}>{get(r)}</span>)}
+            {empty.map((_, i) => <span key={`kosong-${i}`} className="cmp-blank" aria-hidden="true">—</span>)}
+          </div>
+        ))}
       </div>
     </aside>
   );

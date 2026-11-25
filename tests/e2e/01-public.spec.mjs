@@ -112,6 +112,28 @@ test.describe('Website publik', () => {
     await expect(page.getByText('Kamar B1').first()).toBeVisible();
   });
 
+  test('bandingkan kamar: panel menampilkan foto, harga, status, fasilitas; kamar bisa dihapus & panel ditutup', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#kamar').scrollIntoViewIfNeeded();
+    const card = name => page.locator('.rcard').filter({ hasText: name }).first();
+    await card('Kamar A1').locator('.cmp').click();
+    const panel = page.getByRole('complementary', { name: 'Perbandingan kamar' });
+    await expect(panel).toBeVisible();
+    await expect(panel.locator('.cmp-head small')).toHaveText('1/3');
+    await expect(panel.locator('.cmp-empty')).toHaveCount(2);
+    await card('Kamar A2').locator('.cmp').click();
+    await expect(panel.locator('.cmp-room')).toHaveCount(2);
+    await expect(panel.locator('.cmp-room img')).toHaveCount(2);
+    await expect(panel.locator('.cmp-best')).toHaveCount(1); // A2 (Rp750.000) lebih murah dari A1
+    await expect(panel.locator('.cmp-row').filter({ hasText: 'Harga' }).locator('span').nth(2)).toContainText('Termurah');
+    await expect(panel.locator('.cmp-status.yes')).toHaveCount(2);
+    await expect(panel.locator('.cmp-chips li').filter({ hasText: 'WiFi' })).toHaveCount(2);
+    await panel.getByRole('button', { name: 'Hapus Kamar A1' }).click();
+    await expect(panel.locator('.cmp-room')).toHaveCount(1);
+    await panel.getByRole('button', { name: 'Tutup perbandingan' }).click();
+    await expect(panel).toBeHidden();
+  });
+
   test('detail kamar menampilkan beberapa foto yang bisa digeser', async ({ page }) => {
     await page.goto('/kamar/1');
     await expect(page.getByRole('heading', { name: 'Kamar A1' })).toBeVisible();
