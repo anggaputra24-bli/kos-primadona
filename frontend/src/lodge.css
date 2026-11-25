@@ -890,7 +890,10 @@ html.intro-playing .lx-hero-copy > *, html.intro-playing .lx-bar { animation-pla
   /* foto besar beranda: tidak setinggi layar penuh & tidak menempel saat digulir, judul cukup 2 baris */
   .lx-hero { height:auto; }
   .lx-hero-pin { position:relative; height:min(66svh, 600px); min-height:440px; }
-  .lodge .site-wrap.lx-hero-copy { padding-bottom:24px; }
+  .lodge .site-wrap.lx-hero-copy { z-index:1; padding-bottom:84px; }
+  /* bagian bawah foto memudar halus ke warna halaman */
+  .lx-hero-pin::after { content:''; position:absolute; left:0; right:0; bottom:-1px; height:120px; pointer-events:none;
+    background:linear-gradient(180deg, rgba(250,247,243,0) 0%, rgba(250,247,243,.55) 55%, var(--bg) 100%); }
   .lx-hero-media { clip-path:inset(0 calc(var(--e) * 5%) 0 calc(var(--e) * 5%) round 0 0 calc(var(--e) * 28px) calc(var(--e) * 28px)); }
   .lodge .lx-title { font-size:clamp(28px, 8.4vw, 38px); }
   .lx-eyebrow { margin-bottom:12px; font-size:10px; letter-spacing:.14em; }

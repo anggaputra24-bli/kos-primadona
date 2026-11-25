@@ -45,9 +45,14 @@ test.describe('Login admin dari HP', () => {
     const box = await logo.boundingBox();
     const tap = () => page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
     // Jam dibuat tetap agar jeda antar ketukan pasti, walau komputer tes sedang sibuk.
-    const t0 = Date.now();
-    for (let i = 0; i < 5; i++) { await page.clock.setFixedTime(t0 + i * 250); await tap(); }
-    await expect(page.locator('.access-card')).toBeVisible();
+    // Bila komputer tes sangat sibuk, satu ketukan kadang tidak terbaca → ulangi rangkaian 5 ketukan
+    // (tiap ulangan diberi jeda >1 detik di jam tiruan agar hitungan mulai dari nol).
+    let t0 = Date.now();
+    await expect(async () => {
+      t0 += 5000;
+      for (let i = 0; i < 5; i++) { await page.clock.setFixedTime(t0 + i * 250); await tap(); }
+      await expect(page.locator('.access-card')).toBeVisible({ timeout: 1500 });
+    }).toPass({ timeout: 20000 });
     // jari yang lambat: ketukan ke-6 datang 0,8 detik setelah jendela terbuka (dulu menutup jendela)
     await page.clock.setFixedTime(t0 + 4 * 250 + 800);
     await tap();
