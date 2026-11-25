@@ -877,3 +877,74 @@ html.intro-playing .lx-hero-copy > *, html.intro-playing .lx-bar { animation-pla
   .lx-marquee-track { flex-wrap:wrap; width:auto; }
   .lx-marquee span + span { display:none; }
 }
+
+/* ===== HP: tampilan lebih ringkas agar terasa lega =====
+   Hanya berlaku di layar ≤640px — tampilan laptop tidak berubah. Diletakkan paling akhir agar menang dari aturan sebelumnya. */
+@media (max-width:640px) {
+  /* navbar */
+  .lodge .site-header .site-header-row { height:46px; }
+  .lodge .site-header .site-logo { padding:0 14px 0 6px; }
+  .lodge .site-logo { font-size:15px; }
+  .lodge .site-logo img { width:30px; height:30px; padding:5px; }
+  .lodge .site-nav .site-nav-cta { padding:0 12px 0 14px; font-size:12.5px; }
+  /* foto besar beranda */
+  .lodge .lx-title { font-size:clamp(36px, 10.5vw, 46px); }
+  .lx-eyebrow { margin-bottom:12px; font-size:10px; letter-spacing:.14em; }
+  .lx-lead { font-size:14px; line-height:1.55; }
+  .lx-hero-foot { gap:16px; margin-top:16px; }
+  /* judul bagian & paragraf */
+  .lodge .sec-head h2 { font-size:clamp(28px, 8.4vw, 36px); }
+  .lodge .sec-head p { font-size:13.5px; }
+  .lx-statement { padding:110px var(--pad); }
+  .lx-statement p { font-size:clamp(22px, 6.4vw, 28px); }
+  .lx-perks > div { gap:14px; padding:14px 0; }
+  .lx-perks svg { width:38px !important; height:38px !important; padding:9px; }
+  .lx-perks b { font-size:15px; margin-bottom:3px; }
+  .lx-perks small { font-size:13px; }
+  .lx-stats b { font-size:clamp(34px, 10vw, 44px); }
+  .lodge .steps h3 { margin-top:10px; font-size:16px; }
+  /* kartu kamar: lebih pendek & teks lebih kecil */
+  .lodge .room-list { gap:14px; }
+  .lodge .rcard { aspect-ratio:5/4; border-radius:var(--r-sm); }
+  .lodge .rcard .avail { top:10px; left:10px; padding:5px 10px; font-size:11px; }
+  .lodge .rcard .cmp { top:8px; right:8px; min-height:32px; padding:0 11px; gap:6px; font-size:11px; }
+  .lodge .rcard .cmp input { width:13px; height:13px; }
+  .lodge .rcard-info { padding:14px 16px 16px; }
+  .lodge .rcard h3 { margin-bottom:4px; font-size:20px; }
+  .lodge .rcard-meta { margin-bottom:10px; font-size:12px; }
+  .lodge .rcard-price { padding-top:10px; font-size:16px; }
+  .lodge .rcard-price small { font-size:12px; }
+  /* filter daftar kamar */
+  .lodge .loc-tabs button { min-height:40px; padding:8px 16px; font-size:14px; }
+  .lodge .seg button { min-height:36px; font-size:13px; }
+  .lodge .toolbar-selects select { height:40px; font-size:13px; }
+  /* detail kamar */
+  .lodge .dhead h1 { font-size:clamp(34px, 10vw, 44px); }
+  .lodge .dbox { padding:20px; }
+  .lodge .dprice { margin-bottom:16px; font-size:32px; }
+  .lodge .dbox .btn-dark { height:46px; font-size:14px; }
+  /* panel bandingkan */
+  .lodge .cmp-panel { max-height:66vh; }
+  .lodge .cmp-head { padding:10px 10px 10px 16px; }
+  .lodge .cmp-head b { gap:8px; font-size:15px; }
+  .lodge .cmp-head small { padding:2px 8px; font-size:11px; }
+  .lodge .cmp-head button { width:32px; height:32px; }
+  .lodge .cmp-head svg { width:14px; height:14px; }
+  .lodge .cmp-table { font-size:12.5px; }
+  .lodge .cmp-row { grid-template-columns:70px repeat(var(--cols), minmax(0, 1fr)); min-width:calc(70px + var(--cols) * 128px); }
+  .lodge .cmp-row > span { gap:4px; padding:9px 10px; }
+  .lodge .cmp-row > span:first-child { padding-left:12px; font-size:10px; letter-spacing:.05em; }
+  .lodge .cmp-names > span { padding:10px; }
+  .lodge .cmp-room { gap:7px !important; }
+  .lodge .cmp-photo { aspect-ratio:4/3; border-radius:10px; }
+  .lodge .cmp-name { font-size:13.5px; }
+  .lodge .cmp-room button { top:15px; right:15px; width:24px; height:24px; }
+  .lodge .cmp-room button svg { width:11px; height:11px; }
+  .lodge .cmp-empty { margin:10px; padding:10px !important; font-size:11px; gap:6px !important; }
+  .lodge .cmp-empty i { width:26px; height:26px; font-size:16px; }
+  .lodge .cmp-price { font-size:15px; }
+  .lodge .cmp-row small { font-size:11px; }
+  .lodge .cmp-best, .lodge .cmp-status { padding:3px 8px; font-size:10.5px; }
+  .lodge .cmp-chips { gap:4px; }
+  .lodge .cmp-chips li { padding:3px 8px; font-size:11px; }
+}
