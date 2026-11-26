@@ -17,15 +17,13 @@ button { cursor:pointer; }
 
 /* ===== Halaman login admin: maskot penjaga ===== */
 .auth-page {
-  --auth-bg:#0d121b; --auth-card:#161d29cc; --auth-line:#ffffff17; --auth-text:#e8ecf3; --auth-muted:#8b95a7;
   --fur:#4a5263; --fur-dark:#363c4a; --bean:#f2b8a6;
-  position:relative; min-height:100vh; display:grid; place-items:center; padding:32px 16px; overflow:hidden; isolation:isolate;
-  background:radial-gradient(1100px 700px at 50% 0%,#1d2636 0%,var(--auth-bg) 60%); color:var(--auth-text);
+  position:relative; min-height:100vh; display:grid; place-items:center; padding:32px 16px; overflow:hidden; isolation:isolate; color:var(--auth-text);
 }
 .auth-glow { position:absolute; inset:0; z-index:-1; pointer-events:none; }
-.auth-glow span { position:absolute; border-radius:50%; filter:blur(60px); opacity:.55; animation:glowDrift 16s ease-in-out infinite alternate; }
-.auth-glow span:nth-child(1) { width:420px; height:420px; left:-120px; top:-80px; background:#c46b4a55; }
-.auth-glow span:nth-child(2) { width:380px; height:380px; right:-120px; bottom:-120px; background:#3b5b9a55; animation-duration:20s; }
+.auth-glow span { position:absolute; border-radius:50%; filter:blur(60px); animation:glowDrift 16s ease-in-out infinite alternate; }
+.auth-glow span:nth-child(1) { width:420px; height:420px; left:-120px; top:-80px; }
+.auth-glow span:nth-child(2) { width:380px; height:380px; right:-120px; bottom:-120px; animation-duration:20s; }
 @keyframes glowDrift { to { transform:translate3d(60px,40px,0) scale(1.1); } }
 
 .auth-stage { position:relative; width:min(400px,100%); padding-top:150px; }
@@ -68,35 +66,29 @@ button { cursor:pointer; }
 .mascot-happy { animation:happyHop .7s cubic-bezier(.34,1.56,.64,1); }
 @keyframes happyHop { 40% { transform:translateY(-14px); } }
 
-.auth-card { position:relative; z-index:1; display:flex; flex-direction:column; padding:44px 30px 26px; border-radius:22px;
+.auth-card { position:relative; z-index:1; display:flex; flex-direction:column; padding:44px 30px 26px;
   background:var(--auth-card); border:1px solid var(--auth-line); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
-  box-shadow:0 30px 80px #00000066, inset 0 1px 0 #ffffff12;
   animation:authCardIn .8s cubic-bezier(.16,1,.3,1) both; }
 @keyframes authCardIn { from { opacity:0; transform:translateY(40px) scale(.96); } to { opacity:1; transform:none; } }
 .phase-error .auth-card { animation:authCardIn .8s cubic-bezier(.16,1,.3,1) both, cardShake .5s ease; }
 @keyframes cardShake { 20%,60% { translate:-8px 0; } 40%,80% { translate:8px 0; } }
 
-.auth-card h1 { margin:0; text-align:center; font:800 28px 'Plus Jakarta Sans'; color:#f0a383; letter-spacing:-.3px; }
+.auth-card h1 { margin:0; text-align:center; font:800 28px 'Plus Jakarta Sans'; }
 .auth-sub { margin:6px 0 22px; text-align:center; color:var(--auth-muted); font-size:13px; }
-.auth-error { background:#dc5d5d1f; border:1px solid #dc5d5d55; color:#ffb4ad; border-radius:10px; padding:10px 12px; font-size:12px; margin-bottom:12px; animation:authFadeUp .3s ease; }
+.auth-error { border:1px solid #dc5d5d55; border-radius:10px; padding:10px 12px; font-size:12px; margin-bottom:12px; animation:authFadeUp .3s ease; }
 @keyframes authFadeUp { from { opacity:0; transform:translateY(-6px); } }
 
 .auth-field { position:relative; display:block; margin-bottom:12px; }
 .auth-field > span { position:absolute; left:14px; top:8px; font-size:10px; font-weight:600; color:var(--auth-muted); pointer-events:none; }
-.auth-field input { width:100%; height:54px; padding:20px 44px 6px 14px; border-radius:12px; border:1px solid var(--auth-line);
-  background:#ffffff08; color:var(--auth-text); font-size:14px; outline:none; transition:border-color .2s, box-shadow .2s, background .2s; }
-.auth-field input::placeholder { color:#5d6678; }
-.auth-field input:focus { border-color:#e08a66; background:#ffffff0d; box-shadow:0 0 0 4px #c46b4a2e; }
+.auth-field input { width:100%; height:54px; padding:20px 44px 6px 14px; border:1px solid var(--auth-line); color:var(--auth-text); font-size:14px; outline:none; transition:border-color .2s, box-shadow .2s, background .2s; }
 .auth-eye { position:absolute; right:10px; top:50%; translate:0 -50%; width:30px; height:30px; display:grid; place-items:center; border:0; border-radius:8px; background:transparent; color:var(--auth-muted); cursor:pointer; }
-.auth-eye:hover { color:var(--auth-text); background:#ffffff0f; }
 .auth-eye svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; }
 .auth-eye .slash { stroke-dasharray:23; stroke-dashoffset:23; transition:stroke-dashoffset .25s ease; }
 .auth-eye.on .slash { stroke-dashoffset:0; }
 
 .auth-submit { position:relative; margin-top:8px; height:52px; display:flex; align-items:center; justify-content:space-between; padding:0 12px 0 18px;
-  border:0; border-radius:12px; color:#fff; font-weight:700; font-size:14px; cursor:pointer; overflow:hidden;
-  background:linear-gradient(135deg,#d9825f,#b45d3d); box-shadow:0 12px 30px #c46b4a40, inset 0 1px 0 #ffffff30; transition:transform .2s, box-shadow .2s, filter .2s; }
-.auth-submit:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 16px 36px #c46b4a55, inset 0 1px 0 #ffffff30; }
+  border:0; color:#fff; font-weight:700; font-size:14px; cursor:pointer; transition:transform .2s, box-shadow .2s, filter .2s; }
+.auth-submit:hover:not(:disabled) { transform:translateY(-1px); }
 .auth-submit:active:not(:disabled) { transform:translateY(1px); }
 .auth-submit:disabled { cursor:default; }
 
@@ -119,11 +111,10 @@ button { cursor:pointer; }
 @keyframes legSwing { from { transform:rotate(-22deg); } to { transform:rotate(22deg); } }
 
 .auth-status { min-height:18px; margin:12px 0 4px; text-align:center; font-size:12px; color:var(--auth-muted); }
-.phase-success .auth-status { color:#f0a383; font-weight:700; animation:authFadeUp .4s ease; }
+.phase-success .auth-status { font-weight:700; animation:authFadeUp .4s ease; }
 .auth-foot { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; padding-top:14px; border-top:1px solid var(--auth-line); font-size:12px; }
 .auth-foot a { color:var(--auth-muted); transition:color .2s; }
 .auth-foot a:hover { color:var(--auth-text); }
-.auth-foot small { color:#5d6678; }
 
 .auth-card > :not(.auth-error) { animation:fieldIn .6s cubic-bezier(.16,1,.3,1) both; }
 .auth-card > :nth-child(1) { animation-delay:.2s; }

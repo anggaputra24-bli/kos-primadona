@@ -18,24 +18,24 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.2.1",
     "@vercel/blob": "^2.9.0",
-    "@vitejs/plugin-react": "latest",
-    "bcryptjs": "latest",
-    "cors": "latest",
-    "dotenv": "latest",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
     "exceljs": "^4.4.0",
-    "express": "latest",
-    "jsonwebtoken": "latest",
-    "multer": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "react-router-dom": "latest",
-    "vite": "latest"
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.5.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",
-    "concurrently": "latest"
+    "@vitejs/plugin-react": "^6.3.0",
+    "concurrently": "^10.0.7",
+    "vite": "^8.3.8"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }
