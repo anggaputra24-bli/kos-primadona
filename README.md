@@ -73,12 +73,6 @@ cd D:\ProjectMPPL
 npm install
 ```
 
-3. Salin `.env.example` menjadi `.env`, lalu isi:
-   - `ADMIN_ACCESS_CODE`: kode rahasia minimal 16 karakter
-   - `JWT_SECRET`: teks acak minimal 32 karakter (cara membuatnya ada di `.env.example`)
-
-   Jangan bagikan atau commit file `.env`.
-
 ## Menjalankan Aplikasi
 
 Untuk membuka login admin:
